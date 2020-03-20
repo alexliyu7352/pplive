@@ -26,6 +26,13 @@
 *.a
 *.lib
 
+bazel-bin
+
+bazel-out
+bazel-pplive
+bazel-testlogs
+
+
 # Executables
 *.exe
 *.out
