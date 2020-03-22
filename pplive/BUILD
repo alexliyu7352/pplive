@@ -3,7 +3,7 @@
 cc_library(
     name = "pplive",
     srcs = glob(
-        ['src/*.cpp'],
+        ['src/*.cc'],
     ),
     hdrs = glob(
         ['include/*.h'],
