@@ -47,11 +47,6 @@ namespace pplive {
     public:
         std::vector<char> _buf; // buf
 
-        std::vector<char>GetBuf() {
-            // 获取一个 buf
-            return _buf;
-        };
-
         void SetBuf(std::vector< char> & buf) {
             // 设置 buf
             _buf = buf;
