@@ -16,9 +16,9 @@ namespace pplive {
 
     // 普通字段的读写
     #define PROTO_FIELD_ACCESSER(type, name, addr) \
-        int name##_offset() { return addr; }; \
-        type get_##name() { \
-            return *reinterpret_cast<type*>(_buf.data() + name##_offset()); \
+        int name##_offset() const { return addr; }; \
+        const type get_##name() const { \
+            return *(reinterpret_cast<type*>(const_cast<char*>(_buf.data() + addr)));\
         } \
         void set_##name( const type& val) { \
             *reinterpret_cast<type*>(_buf.data() + name##_offset()) = val; \
@@ -26,10 +26,13 @@ namespace pplive {
 
     // 指针字段的读写
     #define PROTO_FIELD_PTR_ACCESSER(type, name, addr) \
-        int name##_offset() { return name##_offset(); }; \
-        type* ptr_##name() { \
-            return reinterpret_cast<type*>(_buf.data() + name##_offset()); \
-        } 
+        int name##_offset() const { return addr; }; \
+        const type* cptr_##name() const {\
+            return (reinterpret_cast<type*>(const_cast<char*>(_buf.data() + addr))); \
+        }\ 
+        type*  ptr_##name()  { \
+            return reinterpret_cast<type*>( reinterpret_cast<type* const>(_buf.data()+addr)); \
+        } \
 
 
     enum class MsgType:uint8_t { // 消息类型
@@ -109,7 +112,8 @@ namespace pplive {
                 set_msg_type(MsgType::Fetch);
             }; 
             FetchReqMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
-            PROTO_FIELD_PTR_ACCESSER(char, resource_id, BASE_OFFSET)
+        public:
+            PROTO_FIELD_PTR_ACCESSER(char, resource_id, BASE_OFFSET);
     };
 
 
@@ -168,11 +172,11 @@ namespace pplive {
             }; 
             ToplySyncReqMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
             PROTO_FIELD_PTR_ACCESSER(char, node_id, BASE_OFFSET) // node id
-            PROTO_FIELD_PTR_ACCESSER(char, resource_id, node_id_offset() + strnlen(ptr_node_id(), _buf.size())) // 资源 id
-            PROTO_FIELD_PTR_ACCESSER(char, parent_node_id, resource_id_offset() + strnlen(ptr_resource_id(), _buf.size())) // 父辈节点
-            PROTO_FIELD_ACCESSER(uint32_t, data_host, parent_node_id_offset() + strnlen(ptr_parent_node_id(), _buf.size())) // 父辈节点
-            PROTO_FIELD_ACCESSER(uint32_t, data_port, data_host_offset() + sizeof(get_data_host())) // 父辈节点
-            PROTO_FIELD_ACCESSER(uint32_t, weight, data_port_offset() + sizeof(get_data_port())) // 父辈节点
+            PROTO_FIELD_PTR_ACCESSER(char, resource_id, node_id_offset() + strnlen(cptr_node_id(), _buf.size())) // 资源 id
+            PROTO_FIELD_PTR_ACCESSER(char, parent_node_id, resource_id_offset() + strnlen(cptr_resource_id(), _buf.size())) // 父辈节点
+            PROTO_FIELD_ACCESSER(uint32_t, data_host, parent_node_id_offset() + strnlen(cptr_parent_node_id(), _buf.size())) // 父辈节点
+            PROTO_FIELD_ACCESSER(uint32_t, data_port, data_host_offset() + sizeof(uint32_t)) // 父辈节点
+            PROTO_FIELD_ACCESSER(uint32_t, weight, data_port_offset() + sizeof(uint32_t)) // 父辈节点
     };
 
     // 断开链接
