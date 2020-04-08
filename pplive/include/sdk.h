@@ -1,5 +1,4 @@
 #pragma once
-
 #include <boost/core/noncopyable.hpp>
 #include <string>
 #include "handy/handy.h"
@@ -50,8 +49,6 @@ namespace pplive {
             PPDataCb _fetch_ch;
             PPCb _dis_conn_cb;
             PPErrorCb _err_cb;
-            
-            // 
         
         };  
 }

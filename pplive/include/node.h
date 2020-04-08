@@ -1,3 +1,4 @@
+#pragma once
 #include "defs.h"
 
 namespace pplive {
@@ -9,7 +10,7 @@ namespace pplive {
             handy::TcpConnPtr _data_conn;
             std::shared_ptr<PPResourceNode> _parent_node;
             std::string _data_host;
-            std::string _data_port;
+            uint32_t _data_port;
         private:
             PPResourceNode(const std::string & node_id,const std::string& resource_id, 
              uint32_t weight, handy::TcpConnPtr data_conn, std::shared_ptr<PPResourceNode> parent_node) : _node_id(node_id), _resource_id(resource_id), _weight(weight), _parent_node(parent_node) {};

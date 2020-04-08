@@ -1,5 +1,4 @@
 #pragma once
-
 #include <string>
 #include <vector>
 #include <utility>
@@ -13,25 +12,27 @@ namespace pplive {
 
 
     inline const int DEFAULT_NODE_ID_LEN = 20;
+    inline const int DEFAULT_RESOURCE_ID_LEN = 20;
+    inline const int MAX_MSG_SIZE = 1024;
 
     // 普通字段的读写
     #define PROTO_FIELD_ACCESSER(type, name, addr) \
         int name##_offset() const { return addr; }; \
         const type get_##name() const { \
-            return *(reinterpret_cast<type*>(const_cast<char*>(_buf.data() + addr)));\
+            return *(reinterpret_cast<type*>(const_cast<char*>(_buf + addr)));\
         } \
         void set_##name( const type& val) { \
-            *reinterpret_cast<type*>(_buf.data() + name##_offset()) = val; \
+            *reinterpret_cast<type*>(_buf + name##_offset()) = val; \
         }
 
     // 指针字段的读写
     #define PROTO_FIELD_PTR_ACCESSER(type, name, addr) \
         int name##_offset() const { return addr; }; \
-        const type* cptr_##name() const {\
-            return (reinterpret_cast<type*>(const_cast<char*>(_buf.data() + addr))); \
+        const type* ptr_##name() const {\
+            return (reinterpret_cast<type*>(const_cast<char*>(_buf+ addr))); \
         }\ 
         type*  ptr_##name()  { \
-            return reinterpret_cast<type*>( reinterpret_cast<type* const>(_buf.data()+addr)); \
+            return reinterpret_cast<type*>( reinterpret_cast<type* const>(_buf+addr)); \
         } \
 
 
@@ -52,27 +53,38 @@ namespace pplive {
     class BaseMsg  {
 
     public:
-        std::vector<char> _buf; // buf
+        char*  _buf; // buf
+        int _cap;
 
         const int BASE_OFFSET = sizeof(MsgType);
 
     public:
-        
-        BaseMsg(int cap=DEFAULT_MSG_SIZE){
-            _buf.resize(cap);
+        const char*  get_buf() const {
+            return _buf;
+        };
+
+        BaseMsg(int cap=DEFAULT_MSG_SIZE) : _cap(cap) {
+            _buf = new char[_cap];
+            bzero(_buf, _cap);
         }
 
         BaseMsg(const char * buf){
             // 拷贝
-            auto buf_len = strlen(buf);
-            _buf.resize(buf_len*2);
-            for(auto i =0; i<buf_len; i++ ){
-                _buf.push_back(buf[i]);
-            }
+            _cap = strnlen(buf, MAX_MSG_SIZE);
+            _buf = new char[_cap];
+            bzero(_buf, _cap);
+            strncpy(_buf, buf, MAX_MSG_SIZE);
         }
 
-        BaseMsg(BaseMsg && msg) noexcept{
-            _buf = std::move(msg._buf);
+        BaseMsg(const BaseMsg & msg) noexcept{
+            _buf = new char[strnlen(msg._buf, MAX_MSG_SIZE)];
+            bzero(_buf, _cap);
+            strncpy(_buf, msg._buf, MAX_MSG_SIZE);
+            _cap = msg._cap;
+        }
+
+        ~BaseMsg() {
+            delete [] _buf;
         }
 
     public:
@@ -89,7 +101,7 @@ namespace pplive {
             ConnectReqMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::CONNECT);
             }; 
-            ConnectReqMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
+            ConnectReqMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
     };
 
     // 连接成功返回 node_id
@@ -99,7 +111,7 @@ namespace pplive {
             NodeIdRespMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::NODE_ID);
             }; 
-            NodeIdRespMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
+            NodeIdRespMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
             
             PROTO_FIELD_PTR_ACCESSER(char, node_id, BASE_OFFSET)
     };
@@ -111,7 +123,7 @@ namespace pplive {
             FetchReqMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::Fetch);
             }; 
-            FetchReqMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
+            FetchReqMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
         public:
             PROTO_FIELD_PTR_ACCESSER(char, resource_id, BASE_OFFSET);
     };
@@ -124,10 +136,11 @@ namespace pplive {
             RedirectRespMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::REDIRECT);
             }; 
-            RedirectRespMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
-            PROTO_FIELD_ACCESSER(uint8_t, host_len, BASE_OFFSET)
-            PROTO_FIELD_PTR_ACCESSER(uint32_t, host, host_len_offset()) // ipv4 host
-            PROTO_FIELD_PTR_ACCESSER(uint32_t, port,  host_offset() + sizeof(int32_t) * get_host_len()) // ipv4 port
+            RedirectRespMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
+            PROTO_FIELD_PTR_ACCESSER(char, resouce_id, BASE_OFFSET) // ipv4 host
+            PROTO_FIELD_ACCESSER(uint8_t, host_len, resouce_id_offset() + DEFAULT_RESOURCE_ID_LEN)
+            PROTO_FIELD_PTR_ACCESSER(uint32_t, hosts, host_len_offset() + sizeof(uint8_t)) // ipv4 host
+            PROTO_FIELD_PTR_ACCESSER(uint32_t, ports,  ports_offset() + get_host_len() * sizeof(uint32_t)) // ipv4 port
     };
 
     // 获取资源成功
@@ -137,7 +150,7 @@ namespace pplive {
             OkRespMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::OK);
             }; 
-            OkRespMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
+            OkRespMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
             PROTO_FIELD_PTR_ACCESSER(char, node_id, BASE_OFFSET)
     };
 
@@ -149,7 +162,7 @@ namespace pplive {
             PingReqMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::PING);
             }; 
-            PingReqMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
+            PingReqMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
             PROTO_FIELD_PTR_ACCESSER(char, node_id, BASE_OFFSET) // node id
     };
 
@@ -159,7 +172,7 @@ namespace pplive {
             PongRespMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::PONG);
             }; 
-            PongRespMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
+            PongRespMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
     };
 
 
@@ -170,11 +183,10 @@ namespace pplive {
             ToplySyncReqMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::TOPLY_SYNC);
             }; 
-            ToplySyncReqMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
-            PROTO_FIELD_PTR_ACCESSER(char, node_id, BASE_OFFSET) // node id
-            PROTO_FIELD_PTR_ACCESSER(char, resource_id, node_id_offset() + strnlen(cptr_node_id(), _buf.size())) // 资源 id
-            PROTO_FIELD_PTR_ACCESSER(char, parent_node_id, resource_id_offset() + strnlen(cptr_resource_id(), _buf.size())) // 父辈节点
-            PROTO_FIELD_ACCESSER(uint32_t, data_host, parent_node_id_offset() + strnlen(cptr_parent_node_id(), _buf.size())) // 父辈节点
+            ToplySyncReqMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
+            PROTO_FIELD_PTR_ACCESSER(char, resource_id, BASE_OFFSET) // 资源 id
+            PROTO_FIELD_PTR_ACCESSER(char, parent_node_id, resource_id_offset() + DEFAULT_RESOURCE_ID_LEN) // 父辈节点
+            PROTO_FIELD_ACCESSER(uint32_t, data_host, parent_node_id_offset() + DEFAULT_NODE_ID_LEN) // 父辈节点
             PROTO_FIELD_ACCESSER(uint32_t, data_port, data_host_offset() + sizeof(uint32_t)) // 父辈节点
             PROTO_FIELD_ACCESSER(uint32_t, weight, data_port_offset() + sizeof(uint32_t)) // 父辈节点
     };
@@ -185,11 +197,10 @@ namespace pplive {
             DisConnectReaMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::DISCONNECT);
             }; 
-            DisConnectReaMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
-            PROTO_FIELD_PTR_ACCESSER(char, node_id, BASE_OFFSET) // node id
+            DisConnectReaMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
+            PROTO_FIELD_PTR_ACCESSER(char, resource_id, BASE_OFFSET) // node id
 
     };
-
 
     // 错误
     // 
@@ -198,9 +209,9 @@ namespace pplive {
             ErrorMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::ERROR);
             }; 
-            ErrorMsg(BaseMsg && msg):BaseMsg(std::move(msg)){};
+            ErrorMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
             PROTO_FIELD_ACCESSER(uint32_t, code, BASE_OFFSET ) // 父辈节点
-            PROTO_FIELD_PTR_ACCESSER(char, msg, code_offset()+sizeof(get_code())) // 父辈节点
+            PROTO_FIELD_PTR_ACCESSER(char, msg, code_offset()+sizeof(uint32_t)) // 父辈节点
     };
 
 }   

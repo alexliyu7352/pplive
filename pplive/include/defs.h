@@ -1,3 +1,4 @@
+#pragma once
 #include "handy/handy.h"
 #include <functional>
 #include <iostream>
@@ -23,9 +24,5 @@ namespace pplive {
     inline const int8_t PP_ERROR = -1;
     inline const int8_t PP_DUP = -2;
     inline const int8_t PP_NOT_FOUND = -4;
-
-    class PPDataServer;
-
-    using PPDataServerPtr = std::shared_ptr<PPDataServer>;
 
 }
