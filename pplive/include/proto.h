@@ -46,6 +46,7 @@ namespace pplive {
         PONG, // 心跳回应
         TOPLY_SYNC, // 拓扑同步,
         DISCONNECT,
+        SAFE_DISCONNECT, // 安全断开
         ATTR, // 属性同步
         ERROR, // 错误
     }; 
@@ -192,14 +193,23 @@ namespace pplive {
     };
 
     // 断开链接
-    class DisConnectReaMsg : public BaseMsg {
+    class DisConnectReqMsg : public BaseMsg {
         public:
-            DisConnectReaMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
+            DisConnectReqMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
                 set_msg_type(MsgType::DISCONNECT);
             }; 
-            DisConnectReaMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
+            DisConnectReqMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
             PROTO_FIELD_PTR_ACCESSER(char, resource_id, BASE_OFFSET) // node id
 
+    };
+
+    class SafeDisConnectRespMsg : public BaseMsg {
+        public:
+            SafeDisConnectRespMsg(int cap=DEFAULT_MSG_SIZE):BaseMsg(cap){
+                set_msg_type(MsgType::SAFE_DISCONNECT);
+            }; 
+            SafeDisConnectRespMsg(const BaseMsg & msg):BaseMsg(std::move(msg)){};
+            PROTO_FIELD_PTR_ACCESSER(char, resource_id, BASE_OFFSET) // node id
     };
 
     // 错误

@@ -49,7 +49,7 @@ namespace pplive {
              * 
              * @param resource 
              */
-            void Fetch(const std::string & resource); // 获取资源
+            int Fetch(const std::string & resource_id); // 获取资源
 
             /**
              * @brief 获取资源成功
@@ -62,7 +62,7 @@ namespace pplive {
              * @brief 断开连接
              * 
              */
-            void DisConnect(); // 断开连接
+            int DisConnect(const std::string & resource_id); // 断开连接
 
             /**
              * @brief 可以安全断开
@@ -96,6 +96,24 @@ namespace pplive {
              * @return int 
              */
             int handleRedirect(const handy::TcpConnPtr& con, const RedirectRespMsg & msg);
+
+            /**
+             * @brief 处理 ping
+             * 
+             * @param con 
+             * @param msg 
+             * @return int 
+             */
+            int handlePing(const handy::TcpConnPtr& con, const PingReqMsg & msg);
+            
+            /**
+             * @brief 处理链接断开
+             * 
+             * @param con 
+             * @param msg 
+             * @return int 
+             */
+            int handleSafeDisConnect(const handy::TcpConnPtr& con, const SafeDisConnectRespMsg & msg); 
         private:
             std::string _node_id;
             uint32_t _weight;
@@ -109,7 +127,7 @@ namespace pplive {
             // 各种回调
             PPConnCb _conn_cb;
             PPDatab _fetch_cb;
-            PPConnCb _dis_conn_cb;
+            PPRsoureceCb _dis_conn_cb;
             PPErrorCb _err_cb;
 
         };  

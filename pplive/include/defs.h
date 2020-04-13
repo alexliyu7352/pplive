@@ -15,7 +15,8 @@ namespace pplive {
     using PPConnPtr = handy::TcpConnPtr;
     using DataConnPtr = handy::TcpConnPtr;
     using PPConnCb = std::function<void()>;
-    using PPDatab = std::function<void(const std::string& host, uint16_t port)>;
+    using PPDatab = std::function<void(const std::string& resource_id, const std::string& host, uint16_t port)>;
+    using PPRsoureceCb = std::function<void(const std::string& resource_id)>;
     using PPErrorCb = std::function<void()>;
 
 

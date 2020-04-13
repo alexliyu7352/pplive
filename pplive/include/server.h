@@ -4,7 +4,6 @@
 #include <atomic>
 #include <vector>
 #include "defs.h"
-#include "data.h"
 #include "proto.h"
 #include "node.h"
 
