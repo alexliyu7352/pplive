@@ -12,6 +12,10 @@ namespace pplive {
 
         // 拓扑信息
         // 描述某个资源的拓扑关系
+        public:
+            inline static const uint32_t MAX_PICK_NUM = 100;
+        public:
+            PPToplyInfo(const std::string & resource_id): _resource_id(resource_id) {};
 
         public:
             /**
@@ -31,7 +35,7 @@ namespace pplive {
              * @param weight 
              * @return int 
              */
-            int UpdateToply(const std::string& node_id, const std::string& parent_node_id, uint32_t host, uint32_t port,  u_int32_t weight); // 更新拓扑信息
+            int UpdateToply(const std::string& node_id, std::shared_ptr<PPResourceNode> parent_node, uint32_t host, uint32_t port,  u_int32_t weight); // 更新拓扑信息
 
             /**
              * @brief 删除节点
@@ -40,7 +44,8 @@ namespace pplive {
              * @return int 
              */
             int RemoteToply(const std::string& node_id); // 删除拓扑节点
-        
+
+            std::shared_ptr<PPResourceNode> FindNode(const std::string & node_id);
         private:
             std::string _resource_id; // 资源 id
             std::map<std::string, std::shared_ptr<PPResourceNode>> _node_map; // node_id, node 数据库
@@ -54,10 +59,16 @@ namespace pplive {
          * 
          */
         
-        public:
+        public: 
             std::atomic<uint64_t> node_id;
         public:
             PPControllServer(const std::string & host, unsigned short port);
+            /**
+             * @brief 运行服务器
+             * 
+             * @param threading  是否在单独的线程中
+             */
+            void Run(bool threading = false);
         public:
 
             /**
@@ -68,7 +79,7 @@ namespace pplive {
              * @param port 
              * @return int 
              */
-            int CreateData(const std::string & resource_id, const std::string & host, unsigned int port);
+            int CreateData(const std::string & resource_id) ;
 
             /**
              * @brief 想一个资源写入
@@ -84,6 +95,18 @@ namespace pplive {
              * @return int 
              */
             int CloseData(const std::string & resource_id);
+            
+            /**
+             * @brief 注册数据
+             * 
+             * @param node_id 
+             * @param parent_node_id 
+             * @param host 
+             * @param port 
+             * @param weight 
+             * @return int 
+             */
+            int RegistData(const std::string& node_id, const std::string & resource_id, const std::string & host, uint32_t port,  uint32_t weight);
 
         public:
 
@@ -97,7 +120,7 @@ namespace pplive {
         public:
             handy::HSHAPtr _server; 
             std::unique_ptr<handy::EventBase> _loop;
-            std::map<std::string, PPToplyInfo> _toply_map; // resource id, 
+            std::map<std::string, std::unique_ptr<PPToplyInfo>> _toply_map; // resource id, 
         private:
             /**
              * @brief 处理 链接请求
@@ -133,6 +156,15 @@ namespace pplive {
              * @return int 
              */
             int handleMsgToplySync(const handy::TcpConnPtr& conn, const ToplySyncReqMsg& msg);
+            
+            /**
+             * @brief 处理断开
+             * 
+             * @param conn 
+             * @param msg 
+             * @return int 
+             */
+            int handleDisConn(const handy::TcpConnPtr& conn, const DisConnectReqMsg& msg);
     };
 
 

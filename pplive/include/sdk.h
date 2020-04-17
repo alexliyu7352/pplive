@@ -27,7 +27,13 @@ namespace pplive {
             };
         public: 
             PPSDK(); // 构建
-
+            
+            /**
+             * @brief 运行 sdk
+             * 
+             * @param threading 是否在另一线程中运行 
+             */
+            void Run(bool threading = false);
         public: 
             /**
              * @brief 链接服务器

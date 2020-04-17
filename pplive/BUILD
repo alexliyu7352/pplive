@@ -8,10 +8,11 @@ cc_library(
     hdrs = glob(
         ['include/*.h'],
     ),
-    copts = ["-Iinclude"],
+    copts = ["-Ipplive/include"],
     deps = [
         "@boost//:log",
-        "@handy//:main"
+        "@handy//:main",
+        "@com_github_open_source_parsers_jsoncpp//:jsoncpp"
     ],
     visibility=['//visibility:public']
 )

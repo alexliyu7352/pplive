@@ -6,34 +6,12 @@
 #include <cstring>
 #include "config.h"
 #include "util.h"
-
+#include <iostream>
+#include "json/json.h"
 
 namespace pplive {
 
 
-    inline const int DEFAULT_NODE_ID_LEN = 20;
-    inline const int DEFAULT_RESOURCE_ID_LEN = 20;
-    inline const int MAX_MSG_SIZE = 1024;
-
-    // 普通字段的读写
-    #define PROTO_FIELD_ACCESSER(type, name, addr) \
-        int name##_offset() const { return addr; }; \
-        const type get_##name() const { \
-            return *(reinterpret_cast<type*>(const_cast<char*>(_buf + addr)));\
-        } \
-        void set_##name( const type& val) { \
-            *reinterpret_cast<type*>(_buf + name##_offset()) = val; \
-        }
-
-    // 指针字段的读写
-    #define PROTO_FIELD_PTR_ACCESSER(type, name, addr) \
-        int name##_offset() const { return addr; }; \
-        const type* ptr_##name() const {\
-            return (reinterpret_cast<type*>(const_cast<char*>(_buf+ addr))); \
-        }\ 
-        type*  ptr_##name()  { \
-            return reinterpret_cast<type*>( reinterpret_cast<type* const>(_buf+addr)); \
-        } \
 
 
     enum class MsgType:uint8_t { // 消息类型
@@ -141,7 +119,7 @@ namespace pplive {
             PROTO_FIELD_PTR_ACCESSER(char, resouce_id, BASE_OFFSET) // ipv4 host
             PROTO_FIELD_ACCESSER(uint8_t, host_len, resouce_id_offset() + DEFAULT_RESOURCE_ID_LEN)
             PROTO_FIELD_PTR_ACCESSER(uint32_t, hosts, host_len_offset() + sizeof(uint8_t)) // ipv4 host
-            PROTO_FIELD_PTR_ACCESSER(uint32_t, ports,  ports_offset() + get_host_len() * sizeof(uint32_t)) // ipv4 port
+            PROTO_FIELD_PTR_ACCESSER(uint16_t, ports,  ports_offset() + get_host_len() * sizeof(uint32_t)) // ipv4 port
     };
 
     // 获取资源成功

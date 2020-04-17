@@ -1,13 +1,15 @@
-#include "sdk.h"
+#include <sdk.h>
 #include <arpa/inet.h>
 
 namespace pplive {
 
   PPSDK::PPSDK() {
-      _loop = std::make_unique<handy::EventBase>();
+      _loop = std::make_unique<handy::EventBase >( );
   }
 
-
+  void PPSDK::Run(bool threading) {
+      _loop->loop();
+  }
 
   void PPSDK::Connect(const std::string & host,  uint16_t port) {
       _d2_conn = handy::TcpConn::createConnection(_loop.get(), host, port);
@@ -18,6 +20,7 @@ namespace pplive {
             // 处理链接成功
              auto conn_req_msg = ConnectReqMsg();
              con->sendMsg(conn_req_msg.get_buf());
+
           } else if (con->getState() == handy::TcpConn::State::Connected) {
             // 关闭连接
               _status = NodeControllStatus::CLOSING;
@@ -70,9 +73,6 @@ namespace pplive {
     _fetch_cb = cb;
   }
 
-  void PPSDK::OnFetched(const PPDatab &cb) {
-    _fetch_cb = cb;
-  }
 
   int PPSDK::DisConnect(const std::string & resource_id) {
     auto req = DisConnectReqMsg();
@@ -86,6 +86,7 @@ namespace pplive {
     if (_status == NodeControllStatus::HANDSHAKING) {
       _node_id = msg.ptr_node_id();
       _status = NodeControllStatus::CONNECTING;
+      _conn_cb();
     }
 
     return PP_OK;
@@ -98,9 +99,9 @@ namespace pplive {
       return PP_NOT_FOUND;
     }
     struct in_addr ip_addr;
-    ip_addr.s_addr = msg.ptr_hosts[0];
+    ip_addr.s_addr = msg.ptr_hosts()[0];
     std::string host = ::inet_ntoa(ip_addr);
-    uint16_t port = msg.ptr_ports[0];
+    uint16_t port = msg.ptr_ports()[0];
     _fetch_cb(msg.ptr_resouce_id(), host, port);
     return PP_OK;
   }
