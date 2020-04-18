@@ -22,7 +22,7 @@ namespace pplive {
         return it->second;
     }
 
-    int PPToplyInfo::UpdateToply(const std::string& node_id,  std::shared_ptr<PPResourceNode> parent_node, uint32_t host, uint32_t port,  u_int32_t weight) {
+    int PPToplyInfo::UpdateToply(const std::string& node_id,  std::shared_ptr<PPResourceNode> parent_node, const std::string& host, uint32_t port,  u_int32_t weight) {
         auto it = _node_map.find(node_id);
         if (it == _node_map.end() ){
             // 未找到
@@ -89,16 +89,22 @@ namespace pplive {
 
         _server->server_->onConnState([&](const handy::TcpConnPtr conn){
             conn->context<PPNodeSession>();
+            
 
             if (conn->getState() == handy::TcpConn::State::Connected){
                 // 设置消息处理
                 conn->onMsg(new handy::LineCodec, [&](const handy::TcpConnPtr& con, handy::Slice msg){
-                    auto PP_msg = BaseMsg(msg.data());
+                    if (msg.empty()){
+                        return;
+                    }
+                    auto PP_msg = BaseMsg(msg.toString());
+                    std::cout<<"收到消息: " <<msg.toString()<<std::endl;
                     int ret; //错误
-                    switch (PP_msg.get_msg_type())
+                    switch (PP_msg.GetMsgType())
                     {
                     case MsgType::CONNECT:
                         // 建立连接
+                        std::cout<<"尝试连接"<<std::endl;
                         ret = handleMsgConnect(con,PP_msg);
                         break;
                     case MsgType::Fetch:
@@ -123,51 +129,82 @@ namespace pplive {
 
     }
 
-    int PPControllServer::handleMsgConnect(const handy::TcpConnPtr& conn,  const ConnectReqMsg& msg) {
-        auto resp = NodeIdRespMsg();
+    int PPControllServer::handleMsgConnect(const handy::TcpConnPtr& conn,   BaseMsg & msg) {
+        auto resp = BaseMsg(MsgType::NODE_ID);
+        auto data = NodeIdData();
         char node_id[DEFAULT_NODE_ID_LEN] = {0};
-        strncpy(resp.ptr_node_id(), genNodeId(node_id), DEFAULT_NODE_ID_LEN);
-        conn->sendMsg(resp.get_buf());
+        data.node_id = genNodeId(node_id);
+        resp.SetMsg(data);
+        conn->sendMsg(resp.ToString());
         conn->context<PPNodeSession>()._node_id = node_id;
         return PP_OK;
     };
     
-    int PPControllServer::handleMsgFetch(const handy::TcpConnPtr& conn,  const FetchReqMsg& msg){
-        auto resp = RedirectRespMsg();
-        char resource_id[DEFAULT_RESOURCE_ID_LEN];
-        strncpy(resource_id, msg.ptr_resource_id(), DEFAULT_RESOURCE_ID_LEN);
-        auto it = _toply_map.find(resource_id);
+    int PPControllServer::handleMsgFetch(const handy::TcpConnPtr& conn,  BaseMsg & msg){
+        auto resp = BaseMsg(MsgType::REDIRECT);
+        // 解析请求的信息
+        auto resource_id_info = ResourceIdData();
+        resource_id_info.BindJson(msg.GetJsonDataRef());
+        auto it = _toply_map.find(resource_id_info.resource_id);
         if(it == _toply_map.end()) {
             return PP_NOT_FOUND;
         }
         
         // 构造 resp
+        auto redirect_data = RedirectData();
+        redirect_data.resource_id = resource_id_info.resource_id;
         auto pick_res = it->second->PickBestNode(conn->context<PPNodeSession>()._node_id);
-        strncpy(resp.ptr_resouce_id(), resource_id, strlen(resource_id));
-        resp.set_host_len(pick_res.size());
-        for(int i=0;i<resp.get_host_len(); i++ ){
-            resp.ptr_hosts()[i] = (uint32_t)::inet_addr(pick_res[i]->_data_host.c_str());
-            resp.ptr_ports()[i] =  (uint16_t)pick_res[i]->_data_port;
+        for(auto res : pick_res ){
+
+            auto server_info = ServerInfoData(               
+                res->_node_id,
+                res->_data_host,
+                res->_data_port,
+                res->_proto);
+            redirect_data.servers.push_back(
+                server_info
+            );
+
         }
+        resp.SetMsg(redirect_data);
         //发回
-        conn->sendMsg(resp.get_buf());
+        conn->sendMsg(resp.ToString());
         return PP_OK;
     }
 
     
     int PPControllServer::handleMsgPing(const handy::TcpConnPtr& conn) {
-        auto resp = PingReqMsg();
-        conn->sendMsg(resp.get_buf());
+        auto resp = BaseMsg(MsgType::PONG);
+        conn->sendMsg(resp.ToString());
         return PP_OK;
     }
 
-    int PPControllServer::handleMsgToplySync(const handy::TcpConnPtr& conn, const ToplySyncReqMsg& msg){
-        auto it = _toply_map.find(msg.ptr_resource_id());
+    int PPControllServer::handleMsgToplySync(const handy::TcpConnPtr& conn,  BaseMsg & msg){
+        auto toply_info = ToplySyncData(msg.GetJsonDataRef());
+
+        auto it = _toply_map.find(toply_info.resource_id);
         if (it == _toply_map.end()) {
             return PP_NOT_FOUND;
         }
-        auto parent_node = it->second->FindNode(msg.ptr_parent_node_id());
-        it->second->UpdateToply(conn->context<PPNodeSession>()._node_id, parent_node , msg.get_data_host(), msg.get_data_port(), msg.get_weight());
+        auto parent_node = it->second->FindNode(toply_info.parent_server.node_id);
+        it->second->UpdateToply(conn->context<PPNodeSession>()._node_id, parent_node , toply_info.parent_server.host, toply_info.parent_server.port, toply_info.weight);
+        return PP_OK;
+    }
+
+
+    int PPControllServer::handleDisConn(const handy::TcpConnPtr& conn,  BaseMsg & msg) {
+        auto resource_id_info = ResourceIdData(msg.GetJsonDataRef());
+
+        auto toply_it = _toply_map.find(resource_id_info.resource_id);
+        if (toply_it != _toply_map.end()) {
+            return PP_NOT_FOUND;
+        }
+        toply_it->second->RemoteToply(conn->context<std::string>());
+
+        auto resp = BaseMsg(MsgType::SAFE_DISCONNECT);
+        
+        resp.SetMsg(resource_id_info);
+        conn->sendMsg(resp.ToString());
         return PP_OK;
     }
     
@@ -176,22 +213,11 @@ namespace pplive {
         if (it == _toply_map.end()) {
             return PP_NOT_FOUND;
         }    
-        it->second->UpdateToply(node_id, nullptr, (uint32_t)::inet_addr(host.c_str()), port, weight); 
+        it->second->UpdateToply(node_id, nullptr, host, port, weight); 
         return PP_OK;
     }
     
 
-    int PPControllServer::handleDisConn(const handy::TcpConnPtr& conn, const DisConnectReqMsg& msg) {
-        auto toply_it = _toply_map.find(msg.ptr_resource_id());
-        if (toply_it != _toply_map.end()) {
-            return PP_NOT_FOUND;
-        }
-        toply_it->second->RemoteToply(conn->context<std::string>());
-        auto resp = SafeDisConnectRespMsg();
-        strncpy(resp.ptr_resource_id(), msg.ptr_resource_id(), DEFAULT_RESOURCE_ID_LEN);
-        conn->sendMsg(resp.get_buf());
-        return PP_OK;
-    }
     
 
 }       

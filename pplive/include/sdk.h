@@ -92,7 +92,7 @@ namespace pplive {
              * @param con 
              * @param msg 
              */
-            int handlePPConnect(const handy::TcpConnPtr& con, const NodeIdRespMsg & msg );
+            int handlePPConnect(const handy::TcpConnPtr& con,  BaseMsg & msg );
 
             /**
              * @brief 处理重定向
@@ -101,7 +101,7 @@ namespace pplive {
              * @param msg 
              * @return int 
              */
-            int handleRedirect(const handy::TcpConnPtr& con, const RedirectRespMsg & msg);
+            int handleRedirect(const handy::TcpConnPtr& con,  BaseMsg & msg);
 
             /**
              * @brief 处理 ping
@@ -110,7 +110,7 @@ namespace pplive {
              * @param msg 
              * @return int 
              */
-            int handlePing(const handy::TcpConnPtr& con, const PingReqMsg & msg);
+            int handlePing(const handy::TcpConnPtr& con,  BaseMsg & msg);
             
             /**
              * @brief 处理链接断开
@@ -119,7 +119,7 @@ namespace pplive {
              * @param msg 
              * @return int 
              */
-            int handleSafeDisConnect(const handy::TcpConnPtr& con, const SafeDisConnectRespMsg & msg); 
+            int handleSafeDisConnect(const handy::TcpConnPtr& con,  BaseMsg & msg); 
         private:
             std::string _node_id;
             uint32_t _weight;

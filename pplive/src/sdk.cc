@@ -15,12 +15,12 @@ namespace pplive {
       _d2_conn = handy::TcpConn::createConnection(_loop.get(), host, port);
 
       // 注册一开始链接的时候的
-      _d2_conn->onState([=](const handy::TcpConnPtr& con){
+      _d2_conn->onState([&](const handy::TcpConnPtr& con){
           if (con->getState() == handy::TcpConn::State::Connected) {
             // 处理链接成功
-             auto conn_req_msg = ConnectReqMsg();
-             con->sendMsg(conn_req_msg.get_buf());
-
+             auto conn_req_msg = BaseMsg(MsgType::CONNECT);
+             con->sendMsg(conn_req_msg.ToString());
+             _status = NodeControllStatus::HANDSHAKING;
           } else if (con->getState() == handy::TcpConn::State::Connected) {
             // 关闭连接
               _status = NodeControllStatus::CLOSING;
@@ -28,9 +28,13 @@ namespace pplive {
       });
 
       _d2_conn->onMsg(new handy::LineCodec, [=](const handy::TcpConnPtr& con, handy::Slice msg){
-          auto server_msg = BaseMsg(msg.data());
+          if (msg.empty()){
+            return;
+          }
+          auto server_msg = BaseMsg(msg.toString());
           int ret = 0;
-          switch (server_msg.get_msg_type())
+          std::cout<<"收到消息: " <<msg.toString()<<std::endl;
+          switch (server_msg.GetMsgType())
           {
           case MsgType::NODE_ID:
             // 处理链接
@@ -39,10 +43,6 @@ namespace pplive {
           
           case MsgType::REDIRECT:
             ret = handleRedirect(con, server_msg);
-            break;
-
-          case MsgType::PING:
-            ret = handlePing(con, server_msg);
             break;
 
           case MsgType::SAFE_DISCONNECT:
@@ -62,9 +62,11 @@ namespace pplive {
   }
 
   int PPSDK::Fetch(const std::string & resource_id) {
-    auto req = FetchReqMsg();
-    strncpy(req.ptr_resource_id(), resource_id.c_str(), DEFAULT_RESOURCE_ID_LEN);
-    _d2_conn->sendMsg(req.get_buf());
+    auto req = BaseMsg(MsgType::Fetch);
+    auto resource_id_info = ResourceIdData();
+    resource_id_info.resource_id = resource_id;
+    req.SetMsg(resource_id_info);
+    _d2_conn->sendMsg(req.ToString());
     return PP_OK;
   }
 
@@ -75,16 +77,20 @@ namespace pplive {
 
 
   int PPSDK::DisConnect(const std::string & resource_id) {
-    auto req = DisConnectReqMsg();
-    strncpy(req.ptr_resource_id(), resource_id.c_str(), DEFAULT_RESOURCE_ID_LEN);
-    _d2_conn->sendMsg(req.get_buf());
+    auto req = BaseMsg(MsgType::DISCONNECT);
+    auto resource_id_info = ResourceIdData();
+    resource_id_info.resource_id = resource_id;
+    req.SetMsg(resource_id_info);
+
+    _d2_conn->sendMsg(req.ToString());   
     return PP_OK;
   }
 
 
-  int PPSDK::handlePPConnect(const handy::TcpConnPtr& con, const NodeIdRespMsg & msg ) {
+  int PPSDK::handlePPConnect(const handy::TcpConnPtr& con, BaseMsg & msg ) {
     if (_status == NodeControllStatus::HANDSHAKING) {
-      _node_id = msg.ptr_node_id();
+      auto node_id_info = NodeIdData(msg.GetJsonDataRef());
+      _node_id = node_id_info.node_id;
       _status = NodeControllStatus::CONNECTING;
       _conn_cb();
     }
@@ -93,29 +99,21 @@ namespace pplive {
   }
 
   
-  int PPSDK::handleRedirect(const handy::TcpConnPtr& con, const RedirectRespMsg & msg ) {
-    int host_len = msg.get_host_len();
-    if (host_len == 0) {
+  int PPSDK::handleRedirect(const handy::TcpConnPtr& con,  BaseMsg & msg ) {
+    auto redirect_info = RedirectData(msg.GetJsonDataRef());
+    if (redirect_info.servers.empty() ){
       return PP_NOT_FOUND;
     }
-    struct in_addr ip_addr;
-    ip_addr.s_addr = msg.ptr_hosts()[0];
-    std::string host = ::inet_ntoa(ip_addr);
-    uint16_t port = msg.ptr_ports()[0];
-    _fetch_cb(msg.ptr_resouce_id(), host, port);
+    _fetch_cb(redirect_info.resource_id, redirect_info.servers[0]);
     return PP_OK;
   }
 
 
-  int PPSDK::handlePing(const handy::TcpConnPtr& con, const PingReqMsg & msg){
-    auto resp = PongRespMsg(20);
-    con->sendMsg(resp.get_buf());
-    return PP_OK;
-  }
 
     
-  int PPSDK::handleSafeDisConnect(const handy::TcpConnPtr& con, const SafeDisConnectRespMsg & msg){
-   _dis_conn_cb(msg.ptr_resource_id());
+  int PPSDK::handleSafeDisConnect(const handy::TcpConnPtr& con,  BaseMsg & msg){
+    auto resource_id_info = ResourceIdData(msg.GetJsonDataRef());
+   _dis_conn_cb(resource_id_info.resource_id);
     return PP_OK;
   }
 

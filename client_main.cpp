@@ -8,8 +8,8 @@ int main() {
         cout<<"链接成功"<<endl;
         sdk.Fetch("test1");
     });
-    sdk.OnFetched([](const std::string& resource_id, const std::string& host, uint16_t port){
-        cout<<"获取成功"<< resource_id << " " << host <<endl;
+    sdk.OnFetched([&](const std::string& resource_id, const pplive::ServerInfoData & server_info){
+        cout<<"获取成功"<< resource_id << " " << server_info.node_id <<endl;
     });
     sdk.Connect("127.0.0.1", 10800);
     sdk.Run();

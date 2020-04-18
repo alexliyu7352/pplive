@@ -35,7 +35,7 @@ namespace pplive {
              * @param weight 
              * @return int 
              */
-            int UpdateToply(const std::string& node_id, std::shared_ptr<PPResourceNode> parent_node, uint32_t host, uint32_t port,  u_int32_t weight); // 更新拓扑信息
+            int UpdateToply(const std::string& node_id, std::shared_ptr<PPResourceNode> parent_node, const std::string& host, uint32_t port,  u_int32_t weight); // 更新拓扑信息
 
             /**
              * @brief 删除节点
@@ -129,7 +129,7 @@ namespace pplive {
              * @param msg 
              * @return int 
              */
-            int handleMsgConnect(const handy::TcpConnPtr& conn, const ConnectReqMsg& msg);
+            int handleMsgConnect(const handy::TcpConnPtr& conn,  BaseMsg & msg);
 
             /**
              * @brief 处理 资源请求
@@ -138,7 +138,7 @@ namespace pplive {
              * @param msg 
              * @return int 
              */
-            int handleMsgFetch(const handy::TcpConnPtr& conn, const FetchReqMsg& msg);
+            int handleMsgFetch(const handy::TcpConnPtr& conn,  BaseMsg & msg);
             
             /**
              * @brief 处理 ping
@@ -155,7 +155,7 @@ namespace pplive {
              * @param msg 
              * @return int 
              */
-            int handleMsgToplySync(const handy::TcpConnPtr& conn, const ToplySyncReqMsg& msg);
+            int handleMsgToplySync(const handy::TcpConnPtr& conn,  BaseMsg & msg);
             
             /**
              * @brief 处理断开
@@ -164,7 +164,7 @@ namespace pplive {
              * @param msg 
              * @return int 
              */
-            int handleDisConn(const handy::TcpConnPtr& conn, const DisConnectReqMsg& msg);
+            int handleDisConn(const handy::TcpConnPtr& conn,  BaseMsg & msg);
     };
 
 
