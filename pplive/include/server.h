@@ -35,7 +35,7 @@ namespace pplive {
              * @param weight 
              * @return int 
              */
-            int UpdateToply(const std::string& node_id, std::shared_ptr<PPResourceNode> parent_node, const std::string& host, uint32_t port,  u_int32_t weight); // 更新拓扑信息
+            int UpdateToply(const std::string& node_id, std::shared_ptr<PPResourceNode> parent_node, const std::string uri,  u_int32_t weight); // 更新拓扑信息
 
             /**
              * @brief 删除节点
@@ -106,7 +106,7 @@ namespace pplive {
              * @param weight 
              * @return int 
              */
-            int RegistData(const std::string& node_id, const std::string & resource_id, const std::string & host, uint32_t port,  uint32_t weight);
+            int RegistData(const std::string& node_id, const std::string & resource_id, const std::string& uri, uint32_t weight);
 
         public:
 

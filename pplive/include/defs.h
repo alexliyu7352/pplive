@@ -10,6 +10,8 @@
 #include <string>
 #include <boost/core/noncopyable.hpp>
 #include <iostream>
+#include "session.h"
+#include "node.h"
 
 
 
@@ -17,7 +19,7 @@ namespace pplive {
     using PPConnPtr = handy::TcpConnPtr;
     using DataConnPtr = handy::TcpConnPtr;
     using PPConnCb = std::function<void()>;
-    using PPDatab = std::function<void(const std::string& resource_id, const ServerInfoData & server_info)>;
+    using PPDatab = std::function<int(const std::string& resource_id, const ServerInfoData & server)>;
     using PPRsoureceCb = std::function<void(const std::string& resource_id)>;
     using PPErrorCb = std::function<void()>;
 

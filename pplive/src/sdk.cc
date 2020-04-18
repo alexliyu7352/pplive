@@ -65,6 +65,7 @@ namespace pplive {
     auto req = BaseMsg(MsgType::Fetch);
     auto resource_id_info = ResourceIdData();
     resource_id_info.resource_id = resource_id;
+    RegistResource(resource_id, "");
     req.SetMsg(resource_id_info);
     _d2_conn->sendMsg(req.ToString());
     return PP_OK;
@@ -104,10 +105,27 @@ namespace pplive {
     if (redirect_info.servers.empty() ){
       return PP_NOT_FOUND;
     }
-    _fetch_cb(redirect_info.resource_id, redirect_info.servers[0]);
+    auto server = redirect_info.servers[0]; //TODO: ping 完了选最快的
+    int ret = _fetch_cb(redirect_info.resource_id, server);
+    if (ret != PP_OK) {
+      // 失败了
+      throw std::runtime_error("资源使用失败");
+    }
+    auto parent_resource = PPResourceNode::CreatePPNode(
+      server.node_id,
+      redirect_info.resource_id,
+      0,
+      nullptr
+    );
+    auto it = _resource_map.find(redirect_info.resource_id);
+    if (it == _resource_map.end()){
+      RegistResource(redirect_info.resource_id, "");
+      it = _resource_map.find(redirect_info.resource_id);
+    }
+    it->second->_parent_node  = parent_resource;
+    syncToply(redirect_info.resource_id);
     return PP_OK;
   }
-
 
 
     
@@ -115,6 +133,43 @@ namespace pplive {
     auto resource_id_info = ResourceIdData(msg.GetJsonDataRef());
    _dis_conn_cb(resource_id_info.resource_id);
     return PP_OK;
+  }
+
+  int PPSDK::syncToply(const std::string resource_id) {
+    auto msg = BaseMsg(MsgType::TOPLY_SYNC);
+    auto toply_data = ToplySyncData();
+    auto resource_it = _resource_map.find(resource_id);
+    if (resource_it == _resource_map.end()){
+      return PP_NOT_FOUND;
+    }
+    toply_data.parent_id= resource_it->second->_parent_node->_node_id;
+    toply_data.server.node_id = _node_id;
+    toply_data.server.uri = resource_it->second->_uri;
+    toply_data.resource_id = resource_id;
+    toply_data.weight = 0;
+
+    msg.SetMsg(toply_data);
+    _d2_conn->sendMsg(msg.ToString());
+    std::cout<<"拓扑同步: "<<resource_id <<std::endl;
+    return PP_OK;
+  }
+
+  void PPSDK::RegistResource(std::string resrouce_id, std::string uri){
+    auto it = _resource_map.find(resrouce_id);
+    if (it == _resource_map.end()){
+      // 没找到插入
+      auto resource_node = PPResourceNode::CreatePPNode(
+        _node_id,
+        resrouce_id,
+        0,
+        nullptr
+      );
+      resource_node->_uri = uri;
+      _resource_map.insert(std::make_pair(resrouce_id,resource_node));
+    } else {
+      //找到修改
+        it->second->_uri = uri;
+    }
   }
 
 }

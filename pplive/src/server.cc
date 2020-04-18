@@ -2,12 +2,13 @@
 #include <proto.h>
 #include <session.h>
 #include <iostream>
+#include <algorithm>
 #include <arpa/inet.h>
 
 namespace pplive {
 
     std::vector<std::shared_ptr<PPResourceNode>> PPToplyInfo::PickBestNode(const std::string & node_id){
-        auto res = std::vector<std::shared_ptr<PPResourceNode>>(MAX_PICK_NUM);
+        auto res = std::vector<std::shared_ptr<PPResourceNode>>();
         for( auto const it: _node_map) {
             res.push_back(it.second);
         }
@@ -22,19 +23,17 @@ namespace pplive {
         return it->second;
     }
 
-    int PPToplyInfo::UpdateToply(const std::string& node_id,  std::shared_ptr<PPResourceNode> parent_node, const std::string& host, uint32_t port,  u_int32_t weight) {
+    int PPToplyInfo::UpdateToply(const std::string& node_id,  std::shared_ptr<PPResourceNode> parent_node, const std::string uri,  u_int32_t weight) {
         auto it = _node_map.find(node_id);
         if (it == _node_map.end() ){
             // 未找到
             auto p = std::make_pair(node_id, PPResourceNode::CreatePPNode(node_id,_resource_id, weight,parent_node));
-            p.second->_data_host = host;
-            p.second->_data_port = port;
+            p.second->_uri = uri;
             _node_map.insert(p);
         }  else {
             // 找到了
             it->second->_parent_node = parent_node;
-            it->second->_data_host = host;
-            it->second->_data_port = port;
+            it->second->_uri = uri;
             it->second->_weight = weight;
         }
 
@@ -136,7 +135,7 @@ namespace pplive {
         data.node_id = genNodeId(node_id);
         resp.SetMsg(data);
         conn->sendMsg(resp.ToString());
-        conn->context<PPNodeSession>()._node_id = node_id;
+        conn->context<PPNodeSession>().node_id = node_id;
         return PP_OK;
     };
     
@@ -153,19 +152,18 @@ namespace pplive {
         // 构造 resp
         auto redirect_data = RedirectData();
         redirect_data.resource_id = resource_id_info.resource_id;
-        auto pick_res = it->second->PickBestNode(conn->context<PPNodeSession>()._node_id);
+        auto pick_res = it->second->PickBestNode(conn->context<PPNodeSession>().node_id);
         for(auto res : pick_res ){
-
             auto server_info = ServerInfoData(               
                 res->_node_id,
-                res->_data_host,
-                res->_data_port,
-                res->_proto);
+                res->_uri);
+            
             redirect_data.servers.push_back(
                 server_info
             );
 
         }
+        conn->context<PPNodeSession>().resouce_ids.push_back(resource_id_info.resource_id);
         resp.SetMsg(redirect_data);
         //发回
         conn->sendMsg(resp.ToString());
@@ -186,8 +184,8 @@ namespace pplive {
         if (it == _toply_map.end()) {
             return PP_NOT_FOUND;
         }
-        auto parent_node = it->second->FindNode(toply_info.parent_server.node_id);
-        it->second->UpdateToply(conn->context<PPNodeSession>()._node_id, parent_node , toply_info.parent_server.host, toply_info.parent_server.port, toply_info.weight);
+        auto parent_node = it->second->FindNode(toply_info.parent_id);
+        it->second->UpdateToply(conn->context<PPNodeSession>().node_id, parent_node , toply_info.server.uri, toply_info.weight);
         return PP_OK;
     }
 
@@ -202,18 +200,19 @@ namespace pplive {
         toply_it->second->RemoteToply(conn->context<std::string>());
 
         auto resp = BaseMsg(MsgType::SAFE_DISCONNECT);
-        
+        auto resouce_id_it = std::find( conn->context<PPNodeSession>().resouce_ids.begin(),conn->context<PPNodeSession>().resouce_ids.end(),resource_id_info.resource_id);
+        conn->context<PPNodeSession>().resouce_ids.erase(resouce_id_it);
         resp.SetMsg(resource_id_info);
         conn->sendMsg(resp.ToString());
         return PP_OK;
     }
     
-    int PPControllServer::RegistData(const std::string& node_id, const std::string & resource_id,const std::string & host, uint32_t port,  uint32_t weight){
+    int PPControllServer::RegistData(const std::string& node_id, const std::string & resource_id,const std::string & uri,  uint32_t weight){
         auto it = _toply_map.find(resource_id);
         if (it == _toply_map.end()) {
             return PP_NOT_FOUND;
         }    
-        it->second->UpdateToply(node_id, nullptr, host, port, weight); 
+        it->second->UpdateToply(node_id, nullptr, uri, weight); 
         return PP_OK;
     }
     

@@ -12,7 +12,7 @@
 #include "config.h"
 #include "defs.h"
 #include "proto.h"
-#include "session.h"
+#include "node.h"
 
 namespace pplive {
 
@@ -83,7 +83,14 @@ namespace pplive {
              * @param cb 
              */
             void OnError(const PPErrorCb & cb); // 错误时候的接口
-
+            
+            /**
+             * @brief 注册资源
+             * 
+             * @param resrouce_id 
+             * @param uri 
+             */
+            void RegistResource(std::string resrouce_id, std::string uri); 
         private:
             
             /**
@@ -120,6 +127,15 @@ namespace pplive {
              * @return int 
              */
             int handleSafeDisConnect(const handy::TcpConnPtr& con,  BaseMsg & msg); 
+
+            /**
+             * @brief 同步拓扑
+             * 
+             * @param resource_id 
+             * @return int 
+             */
+            int syncToply(const std::string resource_id);
+
         private:
             std::string _node_id;
             uint32_t _weight;
@@ -135,6 +151,8 @@ namespace pplive {
             PPDatab _fetch_cb;
             PPRsoureceCb _dis_conn_cb;
             PPErrorCb _err_cb;
+
+            std::map<std::string, std::shared_ptr<PPResourceNode>> _resource_map;
 
         };  
 }

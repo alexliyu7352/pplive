@@ -140,30 +140,23 @@ namespace pplive {
 
     struct ServerInfoData: public BaseDataAbc{
         std::string node_id;
-        std::string host;
-        uint16_t port;
-        std::string proto;
+        std::string uri;
 
         ServerInfoData() {};
         ServerInfoData(const Json::Value & v) : BaseDataAbc(v){
             BindJson(v);
         };
 
-        ServerInfoData( std::string node_id_, std::string host_,
-        uint16_t port_, std::string proto_) : node_id(node_id_), host(host_), port(port_), proto(proto_){}
+        ServerInfoData( std::string node_id_, std::string uri_) : node_id(node_id_), uri(uri_){}
 
         virtual void BindJson(const Json::Value & v) override {
             node_id = v["node_id"].asString();
-            host = v["host"].asString();
-            port = v["port"].asInt();
-            proto = v["ptoto"].asString();
+            uri = v["uri"].asString();
         }
 
         virtual Json::Value& ToJson(Json::Value & v) const override {
             v["node_id"] = node_id;
-            v["host"] = host;
-            v["port"] = port;
-            v["proto"] = proto;
+            v["uri"] = uri;
             return v;
         }
     };
@@ -201,7 +194,7 @@ namespace pplive {
         public:
             std::string resource_id;
             ServerInfoData server;
-            ServerInfoData parent_server;
+            std::string  parent_id;
             int weight;
         public:
             ToplySyncData() {};
@@ -212,16 +205,38 @@ namespace pplive {
             virtual void BindJson(const Json::Value & v) override {
                 resource_id = v["resource_id"].asString();
                 server.BindJson(v["server"]);
-                parent_server.BindJson(v["parent_server"]);
+                parent_id = v["parent_id"].asString();
                 weight = v["weight"].asInt();
             }
             
             virtual Json::Value& ToJson(Json::Value & v) const override {
                 v["resource_id"] = resource_id;
                 server.ToJson(v["server"]);
-                parent_server.ToJson(v["parent_server"]);
-                 v["weight"] = weight;
+                v["parent_id"] = parent_id;
+                v["weight"] = weight;
                 return v;
+            }
+    };
+
+    class ErrorMsg : public BaseDataAbc {
+        public:
+            int code;
+            std::string msg; 
+        public:
+            ErrorMsg() {};
+            ErrorMsg(const Json::Value & v) : BaseDataAbc(v){
+                BindJson(v);
+            };
+
+            virtual void BindJson(const Json::Value & v) override {
+                code = v["code"].asInt();
+                msg = v["msg"].asString();
+            }
+            
+            virtual Json::Value& ToJson(Json::Value & v) const override {
+               v["code"] = code;
+               v["msg"] = msg;
+               return v;
             }
     };
 }   
