@@ -14,7 +14,7 @@ boost_deps()
 new_git_repository(
     name="handy",
     commit="73abba21d9e17b8632a804a49c8475b00ca96033",
-    remote="https://github.com/yedf/handy",
+    remote="https://github.com/yedf/handy.git",
     build_file="@//:third_party/handy.BUILD"
 )
 
@@ -24,7 +24,7 @@ git_repository(
     commit = "91ca2167219c612a89334fa09ddf15fbdc5d0592",
     remote = "https://github.com/NuxiNL/bazel-third-party.git",
 )
-
 load("@org_cloudabi_bazel_third_party//:third_party.bzl", "third_party_repositories")
-
 third_party_repositories()
+
+
