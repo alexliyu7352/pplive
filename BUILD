@@ -3,12 +3,16 @@ cc_binary(
     name = "server",
     srcs = ["server_main.cpp"],
     copts = [""],
-    deps = ["//pplive:pplive"],
+    deps = [
+        "//pplive:pplive",
+        "//pplive_rtmp:pprtmp_lib"
+        ]
 )
 
 cc_binary(
     name = "client",
     srcs = ["client_main.cpp"],
     copts = [""],
-    deps = ["//pplive:pplive"],
+    deps = ["//pplive:pplive",
+            "//pplive_rtmp:pprtmp_lib"]
 )

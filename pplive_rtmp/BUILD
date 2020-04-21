@@ -1,7 +1,7 @@
 # https://docs.bazel.build/versions/master/be/c-cpp.html#cc_binary
 # https://docs.bazel.build/versions/master/be/c-cpp.html#cc_library
 cc_library(
-    name = "pprtmp_server",
+    name = "pprtmp_lib",
     srcs = glob(
         ['src/*.cc'],
     ),
@@ -12,8 +12,9 @@ cc_library(
     deps = [
         "@boost//:log",
         "@boost//:format",
+        "@boost//:process",
         "@com_github_open_source_parsers_jsoncpp//:jsoncpp",
-        "//pplive:pplive"
     ],
     visibility=['//visibility:public']
 )
+
