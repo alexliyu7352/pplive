@@ -58,6 +58,6 @@ namespace zl_cli {
     }
     
     int StartServer(const std::string & path) {
-        return std::system( (boost::format("%1% -d") % path).str());
+        return std::system( (boost::format("%1% -d") % path).str().c_str());
     }
 }
