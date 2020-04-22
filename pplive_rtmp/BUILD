@@ -10,9 +10,7 @@ cc_library(
     ),
     copts = ["-Ipplive_rtmp/include"],
     deps = [
-        "@boost//:log",
         "@boost//:format",
-        "@boost//:process",
         "@com_github_open_source_parsers_jsoncpp//:jsoncpp",
     ],
     visibility=['//visibility:public']

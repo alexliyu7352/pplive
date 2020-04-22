@@ -1,14 +1,11 @@
 #pragma once
 #include <iostream>
 #include <string>
-#include <boost/process.hpp>
 
-namespace bp = boost::process; //we will assume this for all further examples
 
 namespace ffmpeg_cli {
     class FfmpegCli {
         private:
-            bp::child _player;
             std::string _uri;
         public:
             
