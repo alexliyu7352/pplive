@@ -5,7 +5,7 @@ namespace zl_cli {
     int ZlHttpClient::AddStreamProxy(const std::string& vhost, const std::string& stream, const std::string& app, 
             const std::string& url, bool enable_rtsp, bool enable_rtmp, bool enable_hls, std::string& res_key){
                   httplib::Client cli(_host, _port);
-
+                 std::cout<<"test2"<<std::endl;
                   // 构建请求 body
                   Json::Value req;
                   Json::Value resp;
@@ -17,10 +17,12 @@ namespace zl_cli {
                   req["enable_rtsp"] = enable_rtsp;
                   req["enable_rtmp"] = enable_rtmp;
                   req["enable_hls"] = enable_hls;
-                  
+                  std::cout<<_writer.write(req)<<std::endl;                 
                   // 请求
                   auto res = cli.Post("/index/api/addStreamProxy", _writer.write(req), "application/json");
+                  std::cout<<res->body<<std::endl;
                   if (res && res->status == 200){
+                      std::cout<<res->body<<std::endl;
                       if (!_reader.parse(res->body, resp)){
                           return static_cast<int>(ApiErr::OtherFailed);
                       }

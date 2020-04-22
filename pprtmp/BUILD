@@ -8,7 +8,7 @@ cc_library(
     hdrs = glob(
         ['include/*.h'],
     ),
-    copts = ["-Ipplive_rtmp/include"],
+    copts = ["-Ipprtmp/include"],
     deps = [
         "@boost//:format",
         "@com_github_open_source_parsers_jsoncpp//:jsoncpp",

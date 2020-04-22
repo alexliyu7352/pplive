@@ -3,7 +3,7 @@
 
 namespace ffmpeg_cli {
     int FfmpegCli::StartPlay() {
-        return 0;
+        return std::system((boost::format("ffplay %1%") % _uri).str().c_str());
     }
 
     int FfmpegCli::StopPlay() {
