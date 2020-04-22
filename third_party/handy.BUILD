@@ -29,6 +29,6 @@ cc_library(
     hdrs = glob(
         ['handy/**']
     ),
-    local_defines=select({'linux':["OS_LINUX"], 'ios': ["OS_LINUX"]}),
+    local_defines=select({'linux':["OS_LINUX"], 'osx': ["OS_MACOSX"]}),
     visibility=['//visibility:public']
 )
