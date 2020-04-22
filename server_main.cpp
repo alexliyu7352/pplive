@@ -1,8 +1,9 @@
 #include <iostream>
 #include "pplive/include/server.h"
-#include "pplive_rtmp/include/"
+#include "pplive_rtmp/include/pprtmp.h"
 
 using namespace std;
+
 int main() {
    auto pp_server =  pplive::PPControllServer("127.0.0.1", 10800);
    pp_server.CreateData("test1");

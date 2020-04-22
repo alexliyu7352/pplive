@@ -5,7 +5,7 @@ cc_binary(
     copts = [""],
     deps = [
         "//pplive:pplive",
-        "//pplive_rtmp:pprtmp_lib"
+        "//pplive_rtmp:pprtmp_lib",
         ]
 )
 
@@ -14,5 +14,6 @@ cc_binary(
     srcs = ["client_main.cpp"],
     copts = [""],
     deps = ["//pplive:pplive",
+            "@boost//:format",
             "//pplive_rtmp:pprtmp_lib"]
 )

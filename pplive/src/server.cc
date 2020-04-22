@@ -3,7 +3,6 @@
 #include <session.h>
 #include <iostream>
 #include <algorithm>
-#include <arpa/inet.h>
 
 namespace pplive {
 
