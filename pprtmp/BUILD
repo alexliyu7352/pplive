@@ -6,7 +6,7 @@ cc_library(
         ['src/*.cc'],
     ),
     hdrs = glob(
-        ['include/*.h'],
+        ['include/*.h', 'include/*.hpp'],
     ),
     copts = ["-Ipprtmp/include"],
     deps = [
