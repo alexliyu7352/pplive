@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <map>
 #include <utility>
 #include <cstdint>
 #include <cstring>
@@ -12,8 +13,6 @@
 namespace pplive {
 
 
-    
-
     enum class MsgType:uint8_t { // 消息类型
         CONNECT  = 1, // 链接
         NODE_ID,
@@ -23,7 +22,7 @@ namespace pplive {
         PING, // ping
         PONG, // 心跳回应
         TOPLY_SYNC, // 拓扑同步,
-        DISCONNECT,
+        DISCONNECT, // 主动断开
         SAFE_DISCONNECT, // 安全断开
         ATTR, // 属性同步
         ERROR, // 错误
@@ -140,23 +139,23 @@ namespace pplive {
 
     struct ServerInfoData: public BaseDataAbc{
         std::string node_id;
-        std::string uri;
+        ResourceUrl resource;
 
         ServerInfoData() {};
         ServerInfoData(const Json::Value & v) : BaseDataAbc(v){
             BindJson(v);
         };
 
-        ServerInfoData( std::string node_id_, std::string uri_) : node_id(node_id_), uri(uri_){}
+        ServerInfoData( std::string node_id_, std::string uri_) : node_id(node_id_), resource(uri_){}
 
         virtual void BindJson(const Json::Value & v) override {
             node_id = v["node_id"].asString();
-            uri = v["uri"].asString();
+            resource.BuildFromUrl(v["url"].asString());
         }
 
         virtual Json::Value& ToJson(Json::Value & v) const override {
             v["node_id"] = node_id;
-            v["uri"] = uri;
+            v["resource"] = resource.GenUrl();
             return v;
         }
     };
@@ -218,6 +217,36 @@ namespace pplive {
             }
     };
 
+    class AttrData : public BaseDataAbc {
+        public:
+            std::string node_id;
+            std::vector<std::pair<std::string, std::string>> attrs;
+        public:
+            AttrData() {};
+            AttrData(const Json::Value & v) : BaseDataAbc(v){
+                BindJson(v);
+            };
+
+            virtual void BindJson(const Json::Value & v) override {
+                node_id = v["node_id"].asString();
+                for (auto attr : v["attrs"]) {
+                    attrs.push_back(std::make_pair(attr["key"].asString(), attr["value"].asString()));
+                }
+            }
+            
+            virtual Json::Value& ToJson(Json::Value & v) const override {
+                v["node_id"] = node_id;
+                for (auto attr : attrs) {
+                    Json::Value item;
+                    item["key"] = attr.first;
+                    item["value"] = attr.second;
+                    v["attrs"].append(item);
+                }
+                return v;
+            }
+    };
+ 
+
     class ErrorMsg : public BaseDataAbc {
         public:
             int code;
@@ -239,5 +268,7 @@ namespace pplive {
                return v;
             }
     };
+
+
 }   
 

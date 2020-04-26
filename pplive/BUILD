@@ -12,6 +12,8 @@ cc_library(
     deps = [
         "@boost//:log",
         "@handy//:main",
+        "@boost//:format",
+        "@boost//:algorithm",
         "@com_github_open_source_parsers_jsoncpp//:jsoncpp"
     ],
     visibility=['//visibility:public']

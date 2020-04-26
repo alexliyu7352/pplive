@@ -43,12 +43,30 @@ namespace pplive {
              * @param node_id 
              * @return int 
              */
-            int RemoteToply(const std::string& node_id); // 删除拓扑节点
+            int RemoveToply(const std::string& node_id); // 删除拓扑节点
 
+            /**
+             * @brief 添加一个空的节点
+             * 
+             * @param node_id 
+             * @return int 
+             */
+            int AddToply(const std::string& node_id); 
+
+
+            std::vector<std::shared_ptr<PPResourceNode>> FindChilds(const std::string & node_id);
+            
+            /**
+             * @brief 查找一个节点
+             * 
+             * @param node_id 
+             * @return std::shared_ptr<PPResourceNode> 
+             */
             std::shared_ptr<PPResourceNode> FindNode(const std::string & node_id);
         private:
             std::string _resource_id; // 资源 id
             std::map<std::string, std::shared_ptr<PPResourceNode>> _node_map; // node_id, node 数据库
+            std::map<std::string, std::vector<std::shared_ptr<PPResourceNode>>> _child_map;
     };
 
     class PPControllServer : public boost::noncopyable {
@@ -120,7 +138,8 @@ namespace pplive {
         public:
             handy::HSHAPtr _server; 
             std::unique_ptr<handy::EventBase> _loop;
-            std::map<std::string, std::unique_ptr<PPToplyInfo>> _toply_map; // resource id, 
+            std::map<std::string, std::unique_ptr<PPToplyInfo>> _toply_map; // resource id,
+            std::map<std::string, handy::TcpConnPtr> _conn_map; 
         private:
             /**
              * @brief 处理 链接请求
