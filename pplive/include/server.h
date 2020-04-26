@@ -6,6 +6,7 @@
 #include "defs.h"
 #include "proto.h"
 #include "node.h"
+#include "load_balance.h"
 
 namespace pplive {
     class PPToplyInfo :public boost::noncopyable {
@@ -15,7 +16,10 @@ namespace pplive {
         public:
             inline static const uint32_t MAX_PICK_NUM = 100;
         public:
-            PPToplyInfo(const std::string & resource_id): _resource_id(resource_id) {};
+         PPToplyInfo(const std::string& resource_id,
+                     LoadBalanceABC* load_balance = new DefaultLoadBalance())
+             : _resource_id(resource_id), _load_balance(load_balance) {
+         };
 
         public:
             /**
@@ -49,6 +53,7 @@ namespace pplive {
         private:
             std::string _resource_id; // 资源 id
             std::map<std::string, std::shared_ptr<PPResourceNode>> _node_map; // node_id, node 数据库
+            std::unique_ptr<LoadBalanceABC> _load_balance; // 负载算法
     };
 
     class PPControllServer : public boost::noncopyable {
@@ -62,7 +67,7 @@ namespace pplive {
         public: 
             std::atomic<uint64_t> node_id;
         public:
-            PPControllServer(const std::string & host, unsigned short port);
+            PPControllServer(const std::string & host, unsigned short port, LoadBalanceABC* load_balance = new DefaultLoadBalance());
             /**
              * @brief 运行服务器
              * 
@@ -120,8 +125,10 @@ namespace pplive {
         public:
             handy::HSHAPtr _server; 
             std::unique_ptr<handy::EventBase> _loop;
-            std::map<std::string, std::unique_ptr<PPToplyInfo>> _toply_map; // resource id, 
-        private:
+            std::map<std::string, std::unique_ptr<PPToplyInfo>> _toply_map; // resource id,
+            std::unique_ptr<LoadBalanceABC> _load_balance;  //负载算法
+
+           private:
             /**
              * @brief 处理 链接请求
              * 

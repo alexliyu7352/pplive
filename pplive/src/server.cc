@@ -7,11 +7,12 @@
 namespace pplive {
 
     std::vector<std::shared_ptr<PPResourceNode>> PPToplyInfo::PickBestNode(const std::string & node_id){
-        auto res = std::vector<std::shared_ptr<PPResourceNode>>();
+        auto nodes = std::vector<std::shared_ptr<PPResourceNode>>();
         for( auto const it: _node_map) {
-            res.push_back(it.second);
+            nodes.push_back(it.second);
         }
-        return res;   
+        auto res = _load_balance->FetchNodes(nodes);
+        return res;
     }
 
     std::shared_ptr<PPResourceNode> PPToplyInfo::FindNode(const std::string & node_id){
@@ -64,7 +65,7 @@ namespace pplive {
         if (it != _toply_map.end()){
             return PP_DUP;
         }
-        _toply_map.insert(std::make_pair(resource_id, std::make_unique<PPToplyInfo>(resource_id)));
+        _toply_map.insert(std::make_pair(resource_id, std::make_unique<PPToplyInfo>(resource_id,_load_balance->Clone())));
         return PP_OK;
     }
 
@@ -78,9 +79,10 @@ namespace pplive {
         return PP_OK;
     }
 
-
-
-    PPControllServer::PPControllServer(const std::string & host, unsigned short port){
+    PPControllServer::PPControllServer(const std::string& host,
+                                       unsigned short port,
+                                       LoadBalanceABC* load_balance)
+        : _load_balance(load_balance) {
         _loop = std::make_unique<handy::EventBase>();
 
         _server = handy::HSHA::startServer(_loop.get(), host, port, 10);
@@ -124,7 +126,6 @@ namespace pplive {
             }
 
         });
-
     }
 
     int PPControllServer::handleMsgConnect(const handy::TcpConnPtr& conn,   BaseMsg & msg) {
