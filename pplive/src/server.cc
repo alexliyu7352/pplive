@@ -227,7 +227,7 @@ namespace pplive {
 
         // 先处理拓扑变动
         auto toply_it = _toply_map.find(resource_id_info.resource_id);
-        if (toply_it != _toply_map.end()) {
+        if (toply_it == _toply_map.end()) {
             return PP_NOT_FOUND;
         }
         
@@ -237,7 +237,7 @@ namespace pplive {
             redirectNode(toply_it->second.get(), child.get());
         }
 
-        toply_it->second->RemoveToply(conn->context<std::string>());
+        toply_it->second->RemoveToply(conn->context<PPNodeSession>().node_id);
         auto resouce_id_it = std::find( conn->context<PPNodeSession>().resouce_ids.begin(),conn->context<PPNodeSession>().resouce_ids.end(),resource_id_info.resource_id);
         conn->context<PPNodeSession>().resouce_ids.erase(resouce_id_it);
         auto resp = BaseMsg(MsgType::SAFE_DISCONNECT);
