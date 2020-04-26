@@ -24,6 +24,35 @@
 
 ping 不通做
 
+## 命令
+
+开启 rtmp 服务器
+
+### 开启rtmp 
+
+```
+./MediaServer
+```
+
+### 开启推流
+
+* macos
+
+```
+ffmpeg -f avfoundation -framerate 30 -video_size 640x480 -i "0"  -vcodec libx264 -f flv rtmp://172.16.192.132:1935/test1
+```
+
+### 开启转发
+
+```
+ffmpeg -re -i src_url -c:a aac -strict -2 -ar 44100 -ab 48k -c:v libx264 -f flv dst_url
+```
+
+### 开启播放
+
+```
+ffplay url
+```
 
 
 

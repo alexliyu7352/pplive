@@ -37,3 +37,4 @@ bazel-testlogs
 *.exe
 *.out
 *.app
+null

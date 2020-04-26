@@ -24,31 +24,34 @@ namespace pplive {
     }
 
     int PPToplyInfo::UpdateToply(const std::string& node_id,  std::shared_ptr<PPResourceNode> parent_node, const std::string uri,  u_int32_t weight) {
-        auto it = _node_map.find(node_id);
-        if (it == _node_map.end() ){
+        auto node_it = _node_map.find(node_id);
+        if (node_it == _node_map.end() ){
             // 未找到
             auto p = std::make_pair(node_id, PPResourceNode::CreatePPNode(node_id,_resource_id, weight,parent_node));
-            p.second->_uri = uri;
             _node_map.insert(p);
-        }  else {
-            // 找到了
-            it->second->_parent_node = parent_node;
-            it->second->_uri = uri;
-            it->second->_weight = weight;
-        }
-
-        return PP_OK;
-  
+            node_it = _node_map.find(node_id);
+        } 
+        node_it->second->_parent_node = parent_node;
+        node_it->second->_uri = uri;
+        node_it->second->_weight = weight;
+        return PP_OK;  
     }
 
-    int PPToplyInfo::RemoteToply(const std::string& node_id) {
+    int PPToplyInfo::RemoveToply(const std::string& node_id) {
         auto it = _node_map.find(node_id);
         if (it == _node_map.end() ){
             return  PP_NOT_FOUND;
-        }     
+        }
         _node_map.erase(it);
         return PP_OK;  
     }
+
+    int PPToplyInfo::AddToply(const std::string& node_id) {
+        _child_map.insert(std::make_pair(node_id, std::vector<std::shared_ptr<PPResourceNode>>()));
+        _node_map.insert(std::make_pair(node_id, std::make_shared<PPResourceNode>()));
+        return PP_OK;
+    }
+ 
 
     void PPControllServer::Run(bool threading) {
         _loop->loop();
@@ -89,8 +92,6 @@ namespace pplive {
 
         _server->server_->onConnState([&](const handy::TcpConnPtr conn){
             conn->context<PPNodeSession>();
-            
-
             if (conn->getState() == handy::TcpConn::State::Connected){
                 // 设置消息处理
                 conn->onMsg(new handy::LineCodec, [&](const handy::TcpConnPtr& con, handy::Slice msg){
@@ -136,6 +137,10 @@ namespace pplive {
         resp.SetMsg(data);
         conn->sendMsg(resp.ToString());
         conn->context<PPNodeSession>().node_id = node_id;
+        _conn_map.insert(std::make_pair(node_id, conn));
+
+        
+
         return PP_OK;
     };
     
@@ -144,15 +149,15 @@ namespace pplive {
         // 解析请求的信息
         auto resource_id_info = ResourceIdData();
         resource_id_info.BindJson(msg.GetJsonDataRef());
-        auto it = _toply_map.find(resource_id_info.resource_id);
-        if(it == _toply_map.end()) {
+        auto toply_it = _toply_map.find(resource_id_info.resource_id);
+        if(toply_it == _toply_map.end()) {
             return PP_NOT_FOUND;
         }
         
         // 构造 resp
         auto redirect_data = RedirectData();
         redirect_data.resource_id = resource_id_info.resource_id;
-        auto pick_res = it->second->PickBestNode(conn->context<PPNodeSession>().node_id);
+        auto pick_res = toply_it->second->PickBestNode(conn->context<PPNodeSession>().node_id);
         for(auto res : pick_res ){
             auto server_info = ServerInfoData(               
                 res->_node_id,
@@ -163,6 +168,8 @@ namespace pplive {
             );
 
         }
+
+        toply_it->second->AddToply(conn->context<PPNodeSession>().node_id);
         conn->context<PPNodeSession>().resouce_ids.push_back(resource_id_info.resource_id);
         resp.SetMsg(redirect_data);
         //发回
@@ -185,23 +192,25 @@ namespace pplive {
             return PP_NOT_FOUND;
         }
         auto parent_node = it->second->FindNode(toply_info.parent_id);
-        it->second->UpdateToply(conn->context<PPNodeSession>().node_id, parent_node , toply_info.server.uri, toply_info.weight);
-        return PP_OK;
+        it->second->UpdateToply(conn->context<PPNodeSession>().node_id, parent_node , toply_info.server.resource.GenUrl(), toply_info.weight);
+        return PP_OK;   
     }
 
 
     int PPControllServer::handleDisConn(const handy::TcpConnPtr& conn,  BaseMsg & msg) {
         auto resource_id_info = ResourceIdData(msg.GetJsonDataRef());
 
+        // 先处理拓扑变动
         auto toply_it = _toply_map.find(resource_id_info.resource_id);
         if (toply_it != _toply_map.end()) {
             return PP_NOT_FOUND;
         }
-        toply_it->second->RemoteToply(conn->context<std::string>());
 
-        auto resp = BaseMsg(MsgType::SAFE_DISCONNECT);
+        toply_it->second->RemoveToply(conn->context<std::string>());
         auto resouce_id_it = std::find( conn->context<PPNodeSession>().resouce_ids.begin(),conn->context<PPNodeSession>().resouce_ids.end(),resource_id_info.resource_id);
         conn->context<PPNodeSession>().resouce_ids.erase(resouce_id_it);
+        
+        auto resp = BaseMsg(MsgType::SAFE_DISCONNECT);
         resp.SetMsg(resource_id_info);
         conn->sendMsg(resp.ToString());
         return PP_OK;

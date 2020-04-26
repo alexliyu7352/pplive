@@ -13,11 +13,11 @@ int main() {
         sdk.Fetch("test1");
     });
     sdk.OnFetched([&](const std::string& resource_id, const pplive::ServerInfoData& server_info) -> int {
-        cout<<"获取成功"<< resource_id << " " << server_info.uri<<endl;
+        cout<<"获取成功"<< resource_id << " " << server_info.resource.GenUrl()<<endl;
         auto dst_url = (boost::format("rtmp://127.0.0.1:1935/%1%") % resource_id).str();
-        ffpalyer.RtmpProxy(server_info.uri, dst_url);
-        
+        ffpalyer.RtmpProxy(server_info.resource.GenUrl(), dst_url);
         ffpalyer.StartPlay(dst_url);
+        sdk.RegistResource(resource_id, dst_url);
         return pplive::PP_OK;
     });
     sdk.Connect("127.0.0.1", 10800);
