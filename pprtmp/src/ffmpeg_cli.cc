@@ -13,6 +13,14 @@ namespace ffmpeg_cli {
         return 0;
     }
 
+    int FfmpegCli::StopPlay() {
+        if(_player_bp) {
+            _player_bp->kill();
+            _player_bp.reset(nullptr);
+        }
+    }
+
+
     int FfmpegCli::RtmpProxy(const std::string & src_url , const std::string & dst_url) {
         if(_proxy_bp){
             _proxy_bp->kill();

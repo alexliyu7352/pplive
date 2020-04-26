@@ -75,7 +75,7 @@ namespace pplive {
              * 
              * @param cb 
              */
-            void OnSafeDisConnect(const PPConnCb & cb); //断开连接的回调
+            void OnSafeDisConnect(const PPRsoureceCb & cb); //断开连接的回调
 
             /**
              * @brief 错误
@@ -137,6 +137,8 @@ namespace pplive {
             int syncToply(const std::string resource_id);
 
         private:
+
+            std::thread _thread;
             std::string _node_id;
             uint32_t _weight;
 

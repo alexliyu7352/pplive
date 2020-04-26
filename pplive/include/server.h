@@ -2,6 +2,7 @@
 #include "handy/handy.h"
 #include <string>
 #include <atomic>
+#include <thread>
 #include <vector>
 #include "defs.h"
 #include "proto.h"
@@ -79,6 +80,7 @@ namespace pplive {
         
         public: 
             std::atomic<uint64_t> node_id;
+        
         public:
             PPControllServer(const std::string & host, unsigned short port);
             /**
@@ -139,7 +141,16 @@ namespace pplive {
             handy::HSHAPtr _server; 
             std::unique_ptr<handy::EventBase> _loop;
             std::map<std::string, std::unique_ptr<PPToplyInfo>> _toply_map; // resource id,
-            std::map<std::string, handy::TcpConnPtr> _conn_map; 
+            std::map<std::string, handy::TcpConnPtr> _conn_map;
+            std::thread _thread;
+        public:
+            /**
+             * @brief 重定向一个节点
+             * 
+             * @param toply 
+             * @return int 
+             */
+            int redirectNode(PPToplyInfo * toply, const PPResourceNode * node);
         private:
             /**
              * @brief 处理 链接请求

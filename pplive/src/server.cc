@@ -9,7 +9,9 @@ namespace pplive {
     std::vector<std::shared_ptr<PPResourceNode>> PPToplyInfo::PickBestNode(const std::string & node_id){
         auto res = std::vector<std::shared_ptr<PPResourceNode>>();
         for( auto const it: _node_map) {
-            res.push_back(it.second);
+            if(it.first != node_id){
+                res.push_back(it.second);
+            }
         }
         return res;   
     }
@@ -31,30 +33,49 @@ namespace pplive {
             node_it = _node_map.find(node_id);
         } 
         node_it->second->_parent_node = parent_node;
-        node_it->second->_uri = uri;
+        node_it->second->_url = uri;
         node_it->second->_weight = weight;
         return PP_OK;  
     }
 
     int PPToplyInfo::RemoveToply(const std::string& node_id) {
-        auto it = _node_map.find(node_id);
-        if (it == _node_map.end() ){
+        auto node_it = _node_map.find(node_id);
+        if (node_it == _node_map.end() ){
             return  PP_NOT_FOUND;
         }
-        _node_map.erase(it);
-        return PP_OK;  
+        _node_map.erase(node_it);
+        
+        auto child_it = _child_map.find(node_id);
+        if (child_it == _child_map.end()){
+            return PP_NOT_FOUND;
+        }
+        _child_map.erase(child_it);
+        
+        return PP_OK;
     }
 
     int PPToplyInfo::AddToply(const std::string& node_id) {
         _child_map.insert(std::make_pair(node_id, std::vector<std::shared_ptr<PPResourceNode>>()));
-        _node_map.insert(std::make_pair(node_id, std::make_shared<PPResourceNode>()));
+        _node_map.insert(std::make_pair(node_id, PPResourceNode::CreatePPNode(node_id, _resource_id, 0, nullptr)));
         return PP_OK;
     }
  
+    std::vector<std::shared_ptr<PPResourceNode>> PPToplyInfo::FindChilds(const std::string & node_id) {
+        auto child_it = _child_map.find(node_id);
+        if (child_it == _child_map.end()){
+            return std::vector<std::shared_ptr<PPResourceNode>>();
+        }
+        return child_it->second;
+    }
+
 
     void PPControllServer::Run(bool threading) {
-        _loop->loop();
-    }
+        if (threading) {
+          _thread = std::thread([&](){_loop->loop();});
+        } else {
+            _loop->loop();
+        }    
+      }
 
     char * PPControllServer::genNodeId( char * str){
         node_id++;
@@ -128,6 +149,31 @@ namespace pplive {
 
     }
 
+    int PPControllServer::redirectNode(PPToplyInfo * toply,const PPResourceNode * node){
+        auto resp = BaseMsg(MsgType::REDIRECT);
+        // 构造 resp
+        auto conn_it = _conn_map.find(node->_node_id);
+        if (conn_it == _conn_map.end()){
+            return PP_NOT_FOUND;
+        }
+        auto redirect_data = RedirectData();
+        redirect_data.resource_id = node->_resource_id;
+        auto pick_res = toply->PickBestNode(node->_node_id);
+        for(auto res : pick_res ){
+            auto server_info = ServerInfoData(               
+                res->_node_id,
+                res->_url);
+            std::cout<<server_info.resource.GenUrl()<<std::endl;
+            redirect_data.servers.push_back(
+                server_info
+            );
+        }
+        resp.SetMsg(redirect_data);
+        //发回
+        conn_it->second->sendMsg(resp.ToString());
+    }
+
+
     int PPControllServer::handleMsgConnect(const handy::TcpConnPtr& conn,   BaseMsg & msg) {
         auto resp = BaseMsg(MsgType::NODE_ID);
         auto data = NodeIdData();
@@ -137,42 +183,22 @@ namespace pplive {
         conn->sendMsg(resp.ToString());
         conn->context<PPNodeSession>().node_id = node_id;
         _conn_map.insert(std::make_pair(node_id, conn));
-
-        
-
         return PP_OK;
     };
     
     int PPControllServer::handleMsgFetch(const handy::TcpConnPtr& conn,  BaseMsg & msg){
-        auto resp = BaseMsg(MsgType::REDIRECT);
         // 解析请求的信息
         auto resource_id_info = ResourceIdData();
         resource_id_info.BindJson(msg.GetJsonDataRef());
         auto toply_it = _toply_map.find(resource_id_info.resource_id);
+        toply_it->second->AddToply(conn->context<PPNodeSession>().node_id);
+        conn->context<PPNodeSession>().resouce_ids.push_back(resource_id_info.resource_id);
         if(toply_it == _toply_map.end()) {
             return PP_NOT_FOUND;
         }
-        
-        // 构造 resp
-        auto redirect_data = RedirectData();
-        redirect_data.resource_id = resource_id_info.resource_id;
-        auto pick_res = toply_it->second->PickBestNode(conn->context<PPNodeSession>().node_id);
-        for(auto res : pick_res ){
-            auto server_info = ServerInfoData(               
-                res->_node_id,
-                res->_uri);
-            
-            redirect_data.servers.push_back(
-                server_info
-            );
-
-        }
-
-        toply_it->second->AddToply(conn->context<PPNodeSession>().node_id);
-        conn->context<PPNodeSession>().resouce_ids.push_back(resource_id_info.resource_id);
-        resp.SetMsg(redirect_data);
-        //发回
-        conn->sendMsg(resp.ToString());
+        auto node = toply_it->second->FindNode(conn->context<PPNodeSession>().node_id);
+        std::cout<<"t1"<<node.get()<<std::endl;
+        redirectNode(toply_it->second.get(), node.get());
         return PP_OK;
     }
 
@@ -204,11 +230,16 @@ namespace pplive {
         if (toply_it != _toply_map.end()) {
             return PP_NOT_FOUND;
         }
+        
+        // 重定向子拓扑
+        auto child_nodes = toply_it->second->FindChilds(conn->context<PPNodeSession>().node_id);
+        for (auto child : child_nodes) {
+            redirectNode(toply_it->second.get(), child.get());
+        }
 
         toply_it->second->RemoveToply(conn->context<std::string>());
         auto resouce_id_it = std::find( conn->context<PPNodeSession>().resouce_ids.begin(),conn->context<PPNodeSession>().resouce_ids.end(),resource_id_info.resource_id);
         conn->context<PPNodeSession>().resouce_ids.erase(resouce_id_it);
-        
         auto resp = BaseMsg(MsgType::SAFE_DISCONNECT);
         resp.SetMsg(resource_id_info);
         conn->sendMsg(resp.ToString());

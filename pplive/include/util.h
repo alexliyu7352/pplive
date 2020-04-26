@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <iostream>
 #include <algorithm>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>
@@ -32,7 +33,7 @@ namespace pplive{
              * @param uri 
              */
             ResourceUrl(const std::string & scheme_, const std::string & host_, 
-            uint16_t port_, const std::string & uri): scheme(scheme_), host(host_),port(port_), uri(uri_) {};
+            uint16_t port_, const std::string & uri_): scheme(scheme_), host(host_),port(port_), uri(uri_) {};
             ResourceUrl() {};
             ResourceUrl(const std::string & url ){
                 BuildFromUrl(url);
@@ -60,7 +61,7 @@ namespace pplive{
 
                 auto port_start =  host_end + host_flag.length();
                 auto port_end = url.find_first_of(port_flag, port_start);
-                host = std::stoi(url.substr(port_start, port_end-port_start).c_str());
+                port = std::stoi(url.substr(port_start, port_end-port_start).c_str());
                 
                 auto uri_start = port_end + port_flag.length();
                 uri = url.substr(uri_start);
