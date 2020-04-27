@@ -1,3 +1,4 @@
+#pragma once
 #include <boost/asio.hpp>
 #include <boost/core/noncopyable.hpp>
 #include <cstdint>
@@ -61,19 +62,6 @@ class DefaultLoadBalance : public LoadBalanceABC {
     int _select_num; //初筛选择的服务器数量
 };
 
-std::vector<std::shared_ptr<PPResourceNode>> DefaultLoadBalance::FetchNodes(
-    std::vector<std::shared_ptr<PPResourceNode>>& servers) {
-    std::sort(servers.begin(), servers.end(), cmp);
-    std::vector<std::shared_ptr<PPResourceNode>> result;
-    for (auto& server : servers) {
-        if (result.size() < _select_num) {
-            result.push_back(server);
-        } else {
-            return result;
-        }
-    }
-    return result;
-};
 
 class ServerSelectABC : boost::noncopyable {
    public:
@@ -95,23 +83,4 @@ class DefaultServerSelect : public ServerSelectABC {
     boost::asio::io_context _context;
 };
 
-int DefaultServerSelect::pingServer(const std::string& ip){
-    _context.reset();
-    Pinger p(_context, ip.c_str());
-    _context.run();
-    return p.spend_time();
-}
-
-ServerInfoData
-    DefaultServerSelect::FetchNode(std::vector<ServerInfoData>& servers) {
-    ServerInfoData best_server;
-    auto wait_time = max_wait;
-    for (auto& server : servers) {
-        auto cur_wait = pingServer(server.resource._host);
-        if (cur_wait>0&&cur_wait < wait_time) {
-            best_server = server;
-        }
-    }
-    return best_server;
-}
 };  // namespace pplive

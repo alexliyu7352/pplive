@@ -16,7 +16,7 @@ int main() {
         cout<<"获取成功"<< resource_id << " " << server_info.resource.GenUrl()<<endl;
         auto dst_url = (boost::format("rtmp://127.0.0.1:1935/%1%") % resource_id).str();
         ffpalyer.RtmpProxy(server_info.resource.GenUrl(), dst_url);
-        ffpalyer.StartPlay(server_info.resource.GenUrl());
+        ffpalyer.StartPlay(dst_url);
         sdk.RegistResource(resource_id, dst_url);
         return pplive::PP_OK;
     });

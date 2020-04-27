@@ -14,6 +14,7 @@ cc_library(
         "@handy//:main",
         "@boost//:format",
         "@boost//:algorithm",
+        "@boost//:asio",
         "@com_github_open_source_parsers_jsoncpp//:jsoncpp"
     ],
     visibility=['//visibility:public']

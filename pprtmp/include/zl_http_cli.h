@@ -62,5 +62,13 @@ namespace zl_cli {
              */
             int StartServer(const std::string & path);
 
+            /**
+             * @brief 获取某个流的观看人数
+             * 
+             * @param app 
+             * @return int 
+             */
+            int GetWatcherNum(const std::string & app, const std::string & schema= "rtmp");
+
     };
 }

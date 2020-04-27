@@ -54,11 +54,35 @@ namespace zl_cli {
                           return code;
                       }
                       return resp["data"]["flag"].asBool();
-                  } 
-            return static_cast<int>(ApiErr::OtherFailed);
+        } 
+        return static_cast<int>(ApiErr::OtherFailed);
     }
     
-    int StartServer(const std::string & path) {
+    int ZlHttpClient::StartServer(const std::string & path) {
         return std::system( (boost::format("%1% -d") % path).str().c_str());
     }
+    
+    int ZlHttpClient::GetWatcherNum(const std::string & app, const std::string & schema) {
+        httplib::Client cli(_host, _port);
+        Json::Value req;
+        Json::Value resp;
+
+        req["app"] = app;
+        req["schema"] = schema;
+
+        auto res = cli.Post("/index/api/getMediaList", _writer.write(req), "application/json");
+        
+        if (res && res->status == 200){
+                      if (!_reader.parse(res->body, resp)){
+                          return static_cast<int>(ApiErr::OtherFailed);
+                      }
+                      auto code = resp["code"].asInt();
+                      if (code != 0){
+                          return code;
+                      }
+                      return resp["data"]["flag"].asBool();
+        } 
+        return static_cast<int>(ApiErr::OtherFailed);
+    }
+
 }
