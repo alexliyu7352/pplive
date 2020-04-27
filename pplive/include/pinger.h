@@ -116,7 +116,7 @@ class Pinger {
             chrono::steady_clock::time_point now = chrono::steady_clock::now();
             chrono::steady_clock::duration elapsed = now - time_sent_;
             spend_time_ =
-                chrono::duration_cast<chrono::milliseconds>(elapsed).count();
+                chrono::duration_cast<chrono::nanoseconds>(elapsed).count();
         }
     }
 

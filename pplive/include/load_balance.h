@@ -66,7 +66,18 @@ class DefaultLoadBalance : public LoadBalanceABC {
 class ServerSelectABC : boost::noncopyable {
    public:
     ServerSelectABC(){};
+    /**
+     * @brief 根据算法选出一个服务器
+     * 
+     * @param servers 从服务端返回的服务器列表
+     * @return ServerInfoData 
+     */
     virtual ServerInfoData FetchNode(std::vector<ServerInfoData>& servers) = 0;
+    /**
+     * @brief 拷贝自身
+     *
+     * @return ServerSelectABC* 在堆上新建的ServerSelectABC的指针
+     */
     virtual ServerSelectABC* Clone() = 0;
 };
 
@@ -75,10 +86,22 @@ class DefaultServerSelect : public ServerSelectABC {
     const static long int max_wait = std::numeric_limits<long int>::max();
 
     DefaultServerSelect(){};
+    /**
+     * @brief 根据ping得到的结果选择一个最低延迟的服务器
+     *
+     * @param servers 从服务端返回的服务器列表
+     * @return ServerInfoData 最低延迟的服务器的信息
+     */
     virtual ServerInfoData FetchNode(std::vector<ServerInfoData>& servers);
     virtual DefaultServerSelect* Clone() { return new DefaultServerSelect(); };
 
    private:
+    /**
+     * @brief 测试ip速度
+     * 
+     * @param ip 待测ip
+     * @return int 延迟数值
+     */
     int pingServer(const std::string& ip);
     boost::asio::io_context _context;
 };
