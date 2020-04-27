@@ -1,6 +1,7 @@
 #pragma once
 #include <atomic>
 #include <string>
+#include <thread>
 #include <vector>
 
 #include "handy/handy.h"
@@ -78,129 +79,137 @@ class PPToplyInfo : public boost::noncopyable {
         _child_map;
 };
 
-class PPControllServer : public boost::noncopyable {
-    /**
-     * @brief 控制服务器, 最中心的节点, 用于同步整个拓扑网络的状态
-     *
-     */
+    class PPControllServer : public boost::noncopyable {
 
-   public:
-    std::atomic<uint64_t> node_id;
 
-   public:
-    PPControllServer(const std::string& host,
-                     unsigned short port,
-                     LoadBalanceABC* load_balance = new DefaultLoadBalance());
-    /**
-     * @brief 运行服务器
-     *
-     * @param threading  是否在单独的线程中
-     */
-    void Run(bool threading = false);
+        /**
+         * @brief 控制服务器, 最中心的节点, 用于同步整个拓扑网络的状态
+         * 
+         */
+        
+        public: 
+            std::atomic<uint64_t> node_id;
+        
+        public:
+         PPControllServer(
+             const std::string& host,
+             unsigned short port,
+             LoadBalanceABC* load_balance = new DefaultLoadBalance());
+         /**
+          * @brief 运行服务器
+          *
+          * @param threading  是否在单独的线程中
+          */
+         void Run(bool threading = false);
+        public:
 
-   public:
-    /**
-     * @brief 创建一个数据 指定运行的端口之类的信息, 会插入到 _data_server_maps
-     * 中
-     *
-     * @param resource_id
-     * @param host
-     * @param port
-     * @return int
-     */
-    int CreateData(const std::string& resource_id);
+            /**
+             * @brief 创建一个数据 指定运行的端口之类的信息, 会插入到 _data_server_maps 中
+             * 
+             * @param resource_id 
+             * @param host 
+             * @param port 
+             * @return int 
+             */
+            int CreateData(const std::string & resource_id) ;
 
-    /**
-     * @brief 想一个资源写入
-     *
-     * @param resource_id
-     * @param data
-     * @return int
-     */
-    /**
-     * @brief 关闭一个数据
-     *
-     * @param resource_id
-     * @return int
-     */
-    int CloseData(const std::string& resource_id);
+            /**
+             * @brief 想一个资源写入
+             * 
+             * @param resource_id 
+             * @param data 
+             * @return int 
+             */
+            /**
+             * @brief 关闭一个数据
+             * 
+             * @param resource_id 
+             * @return int 
+             */
+            int CloseData(const std::string & resource_id);
+            
+            /**
+             * @brief 注册数据
+             * 
+             * @param node_id 
+             * @param parent_node_id 
+             * @param host 
+             * @param port 
+             * @param weight 
+             * @return int 
+             */
+            int RegistData(const std::string& node_id, const std::string & resource_id, const std::string& uri, uint32_t weight);
 
-    /**
-     * @brief 注册数据
-     *
-     * @param node_id
-     * @param parent_node_id
-     * @param host
-     * @param port
-     * @param weight
-     * @return int
-     */
-    int RegistData(const std::string& node_id,
-                   const std::string& resource_id,
-                   const std::string& uri,
-                   uint32_t weight);
+        public:
 
-   public:
-    /**
-     * @brief 生成一个节点 id
-     *
-     * @param str
-     * @return char*
-     */
-    char* genNodeId(char* str);
+            /**
+             * @brief 生成一个节点 id
+             * 
+             * @param str 
+             * @return char* 
+             */
+            char * genNodeId( char * str);
+        public:
+            handy::HSHAPtr _server; 
+            std::unique_ptr<handy::EventBase> _loop;
+            std::map<std::string, std::unique_ptr<PPToplyInfo>> _toply_map; // resource id,
+            std::map<std::string, handy::TcpConnPtr> _conn_map;
+            std::unique_ptr<LoadBalanceABC> _load_balance;  //负载算法
+            std::thread _thread;
+        public:
+            /**
+             * @brief 重定向一个节点
+             * 
+             * @param toply 
+             * @return int 
+             */
+            int redirectNode(PPToplyInfo * toply, const PPResourceNode * node);
+        private:
+            /**
+             * @brief 处理 链接请求
+             * 
+             * @param conn 
+             * @param msg 
+             * @return int 
+             */
+            int handleMsgConnect(const handy::TcpConnPtr& conn,  BaseMsg & msg);
 
-   public:
-    handy::HSHAPtr _server;
-    std::unique_ptr<handy::EventBase> _loop;
-    std::map<std::string, std::unique_ptr<PPToplyInfo>>
-        _toply_map;                                 // resource id,
-    std::unique_ptr<LoadBalanceABC> _load_balance;  //负载算法
-    std::map<std::string, handy::TcpConnPtr> _conn_map;
+            /**
+             * @brief 处理 资源请求
+             * 
+             * @param conn 
+             * @param msg 
+             * @return int 
+             */
+            int handleMsgFetch(const handy::TcpConnPtr& conn,  BaseMsg & msg);
+            
+            /**
+             * @brief 处理 ping
+             * 
+             * @param conn 
+             * @return int 
+             */
+            int handleMsgPing(const handy::TcpConnPtr& conn);
 
-   private:
-    /**
-     * @brief 处理 链接请求
-     *
-     * @param conn
-     * @param msg
-     * @return int
-     */
-    int handleMsgConnect(const handy::TcpConnPtr& conn, BaseMsg& msg);
+            /**
+             * @brief 处理拓扑信息
+             * 
+             * @param conn 
+             * @param msg 
+             * @return int 
+             */
+            int handleMsgToplySync(const handy::TcpConnPtr& conn,  BaseMsg & msg);
+            
+            /**
+             * @brief 处理断开
+             * 
+             * @param conn 
+             * @param msg 
+             * @return int 
+             */
+            int handleDisConn(const handy::TcpConnPtr& conn,  BaseMsg & msg);
+    };
 
-    /**
-     * @brief 处理 资源请求
-     *
-     * @param conn
-     * @param msg
-     * @return int
-     */
-    int handleMsgFetch(const handy::TcpConnPtr& conn, BaseMsg& msg);
 
-    /**
-     * @brief 处理 ping
-     *
-     * @param conn
-     * @return int
-     */
-    int handleMsgPing(const handy::TcpConnPtr& conn);
 
-    /**
-     * @brief 处理拓扑信息
-     *
-     * @param conn
-     * @param msg
-     * @return int
-     */
-    int handleMsgToplySync(const handy::TcpConnPtr& conn, BaseMsg& msg);
-
-    /**
-     * @brief 处理断开
-     *
-     * @param conn
-     * @param msg
-     * @return int
-     */
-    int handleDisConn(const handy::TcpConnPtr& conn, BaseMsg& msg);
-};
-
-}  // namespace pplive
+}   

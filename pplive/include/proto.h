@@ -146,7 +146,7 @@ namespace pplive {
             BindJson(v);
         };
 
-        ServerInfoData( std::string node_id_, std::string uri_) : node_id(node_id_), resource(uri_){}
+        ServerInfoData( std::string node_id_, std::string url_) : node_id(node_id_), resource(url_){};
 
         virtual void BindJson(const Json::Value & v) override {
             node_id = v["node_id"].asString();
@@ -155,7 +155,7 @@ namespace pplive {
 
         virtual Json::Value& ToJson(Json::Value & v) const override {
             v["node_id"] = node_id;
-            v["resource"] = resource.GenUrl();
+            v["url"] = resource.GenUrl();
             return v;
         }
     };

@@ -29,6 +29,13 @@ namespace ffmpeg_cli {
              * @param uri 
              */
             int StartPlay(const std::string & uri);
+            
+            /**
+             * @brief 关闭播放
+             * 
+             * @return int 
+             */
+            int StopPlay();
 
             /**
              * @brief 代理转发器

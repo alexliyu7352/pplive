@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <iostream>
 #include <algorithm>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>

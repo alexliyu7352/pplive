@@ -1,5 +1,4 @@
 #include <sdk.h>
-#include <arpa/inet.h>
 
 namespace pplive {
 
@@ -8,7 +7,11 @@ namespace pplive {
   }
 
   void PPSDK::Run(bool threading) {
-      _loop->loop();
+      if (threading) {
+          _thread = std::thread([&](){_loop->loop();});
+      } else {
+        _loop->loop();
+      }
   }
 
   void PPSDK::Connect(const std::string & host,  uint16_t port) {
@@ -48,7 +51,6 @@ namespace pplive {
           case MsgType::SAFE_DISCONNECT:
             ret = handleSafeDisConnect(con, server_msg);
             break;
-
           default:
             break;
           }
@@ -70,6 +72,7 @@ namespace pplive {
     _d2_conn->sendMsg(req.ToString());
     return PP_OK;
   }
+  
 
 
   void PPSDK::OnFetched(const PPDatab &cb) {
@@ -86,6 +89,11 @@ namespace pplive {
     _d2_conn->sendMsg(req.ToString());   
     return PP_OK;
   }
+
+  void PPSDK::OnSafeDisConnect(const PPRsoureceCb & cb) {
+    _dis_conn_cb = cb;
+  }
+
 
 
   int PPSDK::handlePPConnect(const handy::TcpConnPtr& con, BaseMsg & msg ) {
@@ -114,18 +122,19 @@ namespace pplive {
       // 失败了
       throw std::runtime_error("资源使用失败");
     }
+    // 建立本地的拓扑关系
     auto parent_resource = PPResourceNode::CreatePPNode(
       server.node_id,
       redirect_info.resource_id,
       0,
       nullptr
     );
-    auto it = _resource_map.find(redirect_info.resource_id);
-    if (it == _resource_map.end()){
+    auto resource_it = _resource_map.find(redirect_info.resource_id);
+    if (resource_it == _resource_map.end()){
       RegistResource(redirect_info.resource_id, "");
-      it = _resource_map.find(redirect_info.resource_id);
+      resource_it = _resource_map.find(redirect_info.resource_id);
     }
-    it->second->_parent_node  = parent_resource;
+    resource_it->second->_parent_node  = parent_resource;
     syncToply(redirect_info.resource_id);
     return PP_OK;
   }
@@ -146,7 +155,7 @@ namespace pplive {
     }
     toply_data.parent_id= resource_it->second->_parent_node->_node_id;
     toply_data.server.node_id = _node_id;
-    toply_data.server.resource.BuildFromUrl(resource_it->second->_uri);
+    toply_data.server.resource.BuildFromUrl(resource_it->second->_url);
     toply_data.resource_id = resource_id;
     toply_data.weight = 0;
 
@@ -166,11 +175,11 @@ namespace pplive {
         0,
         nullptr
       );
-      resource_node->_uri = uri;
+      resource_node->_url = uri;
       _resource_map.insert(std::make_pair(resrouce_id,resource_node));
     } else {
       //找到修改
-        it->second->_uri = uri;
+        it->second->_url = uri;
     }
   }
 

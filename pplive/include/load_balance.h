@@ -11,6 +11,7 @@
 
 #include "node.h"
 #include "pinger.h"
+#include "proto.h"
 
 namespace pplive {
 
