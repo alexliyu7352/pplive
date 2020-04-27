@@ -1,3 +1,5 @@
+#pragma once
+
 //
 // ipv4_header.hpp
 // ~~~~~~~~~~~~~~~

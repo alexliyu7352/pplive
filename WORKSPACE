@@ -13,8 +13,8 @@ boost_deps()
 
 new_git_repository(
     name="handy",
-    commit="73abba21d9e17b8632a804a49c8475b00ca96033",
-    remote="https://github.com/yedf/handy.git",
+    commit="23b419c92736fef7aa471a91d4d638ef1d348b7e",
+    remote="https://github.com/IcyCC/handy.git",
     build_file="@//:third_party/handy.BUILD"
 )
 
