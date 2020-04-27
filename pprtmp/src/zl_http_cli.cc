@@ -73,14 +73,17 @@ namespace zl_cli {
         auto res = cli.Post("/index/api/getMediaList", _writer.write(req), "application/json");
         
         if (res && res->status == 200){
-                      if (!_reader.parse(res->body, resp)){
-                          return static_cast<int>(ApiErr::OtherFailed);
-                      }
-                      auto code = resp["code"].asInt();
-                      if (code != 0){
-                          return code;
-                      }
-                      return resp["data"]["flag"].asBool();
+            if (!_reader.parse(res->body, resp)){
+                return static_cast<int>(ApiErr::OtherFailed);
+            }
+            auto code = resp["code"].asInt();
+            if (code != 0){
+                return code;
+            }
+            if (! resp["data"].size() ){
+                return -1;
+            }
+        return resp["data"][0]["readerCount"].asInt64();
         } 
         return static_cast<int>(ApiErr::OtherFailed);
     }
