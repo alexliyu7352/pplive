@@ -3,11 +3,8 @@
 #include <string>
 #include <vector>
 
-#include "defs.h"
 #include "handy/handy.h"
 #include "load_balance.h"
-#include "node.h"
-#include "proto.h"
 
 namespace pplive {
 class PPToplyInfo : public boost::noncopyable {

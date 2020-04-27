@@ -9,9 +9,7 @@
 #include <cstdint>
 #include <utility>
 #include <thread>
-#include "config.h"
-#include "defs.h"
-#include "proto.h"
+#include "load_balance.h"
 #include "node.h"
 
 namespace pplive {
@@ -25,15 +23,15 @@ namespace pplive {
                 FETCHING,
                 DATING
             };
-        public: 
-            PPSDK(); // 构建
-            
-            /**
-             * @brief 运行 sdk
-             * 
-             * @param threading 是否在另一线程中运行 
-             */
-            void Run(bool threading = false);
+        public:
+         PPSDK(ServerSelectABC * server_select= new DefaultServerSelect());  // 构建
+
+         /**
+          * @brief 运行 sdk
+          *
+          * @param threading 是否在另一线程中运行
+          */
+         void Run(bool threading = false);
         public: 
             /**
              * @brief 链接服务器
@@ -136,7 +134,7 @@ namespace pplive {
              */
             int syncToply(const std::string resource_id);
 
-        private:
+           private:
             std::string _node_id;
             uint32_t _weight;
 
@@ -154,5 +152,6 @@ namespace pplive {
 
             std::map<std::string, std::shared_ptr<PPResourceNode>> _resource_map;
 
-        };  
+            std::unique_ptr<ServerSelectABC> _server_select;
+    };
 }

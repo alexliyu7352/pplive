@@ -11,7 +11,6 @@
 #include <boost/core/noncopyable.hpp>
 #include <iostream>
 #include "session.h"
-#include "node.h"
 #include "util.h"
 
 

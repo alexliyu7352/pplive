@@ -1,6 +1,4 @@
 #pragma once
-#include "handy/handy.h"
-#include "defs.h"
 
 namespace pplive {
 

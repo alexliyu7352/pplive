@@ -18,21 +18,21 @@ namespace pplive{
          * 
          */
         public:
-            std::string scheme;
-            std::string host;
-            uint16_t port;
-            std::string uri; // 资源
+            std::string _scheme;
+            std::string _host;
+            uint16_t _port;
+            std::string _uri; // 资源
         public:
             /**
              * @brief Construct a new Resource Url object
              * 
-             * @param scheme_ 
-             * @param host_ 
-             * @param port_ 
+             * @param scheme 
+             * @param host 
+             * @param port 
              * @param uri 
              */
-            ResourceUrl(const std::string & scheme_, const std::string & host_, 
-            uint16_t port_, const std::string & uri): scheme(scheme_), host(host_),port(port_), uri(uri_) {};
+            ResourceUrl(const std::string & scheme, const std::string & host, 
+            uint16_t port, const std::string & uri): _scheme(scheme), _host(host),_port(port), _uri(uri) {};
             ResourceUrl() {};
             ResourceUrl(const std::string & url ){
                 BuildFromUrl(url);
@@ -43,8 +43,8 @@ namespace pplive{
              * @return std::string 
              */
             inline std::string GenUrl() const {
-                return (boost::format("%1%://%2%:%3%/%4%") % scheme 
-                % host % port % uri).str();
+                return (boost::format("%1%://%2%:%3%/%4%") % _scheme 
+                % _host % _port % _uri).str();
             };
 
             inline void BuildFromUrl(const std::string & url) {
@@ -52,19 +52,23 @@ namespace pplive{
                 const std::string host_flag = ":";
                 const std::string port_flag = "/";
                 auto schema_end = url.find_first_of(scheme_flag);
-                scheme = url.substr(0, schema_end);
+                _scheme = url.substr(0, schema_end);
                
                 auto host_start = schema_end+scheme_flag.length();
                 auto host_end = url.find_first_of(host_flag, host_start);
-                host = url.substr(host_start, host_end -host_start);
+                _host = url.substr(host_start, host_end -host_start);
 
                 auto port_start =  host_end + host_flag.length();
                 auto port_end = url.find_first_of(port_flag, port_start);
-                host = std::stoi(url.substr(port_start, port_end-port_start).c_str());
+                _port = std::stoi(url.substr(port_start, port_end-port_start).c_str());
                 
                 auto uri_start = port_end + port_flag.length();
-                uri = url.substr(uri_start);
+                _uri = url.substr(uri_start);
+                
             }
+            
     };
 }
+
+
 

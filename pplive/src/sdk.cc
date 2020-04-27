@@ -3,7 +3,7 @@
 
 namespace pplive {
 
-  PPSDK::PPSDK() {
+  PPSDK::PPSDK(ServerSelectABC * server_select):_server_select(server_select) {
       _loop = std::make_unique<handy::EventBase >( );
   }
 
@@ -98,14 +98,17 @@ namespace pplive {
 
     return PP_OK;
   }
-
   
   int PPSDK::handleRedirect(const handy::TcpConnPtr& con,  BaseMsg & msg ) {
     auto redirect_info = RedirectData(msg.GetJsonDataRef());
     if (redirect_info.servers.empty() ){
       return PP_NOT_FOUND;
     }
-    auto server = redirect_info.servers[0]; //TODO: ping 完了选最快的
+    auto server = _server_select->FetchNode(
+        redirect_info.servers);  // TODO: ping 完了选最快的
+    if(!server.node_id.size()) {
+        return PP_NOT_FOUND;
+    }
     int ret = _fetch_cb(redirect_info.resource_id, server);
     if (ret != PP_OK) {
       // 失败了
@@ -128,7 +131,6 @@ namespace pplive {
   }
 
 
-    
   int PPSDK::handleSafeDisConnect(const handy::TcpConnPtr& con,  BaseMsg & msg){
     auto resource_id_info = ResourceIdData(msg.GetJsonDataRef());
    _dis_conn_cb(resource_id_info.resource_id);
@@ -144,7 +146,7 @@ namespace pplive {
     }
     toply_data.parent_id= resource_it->second->_parent_node->_node_id;
     toply_data.server.node_id = _node_id;
-    toply_data.server.uri = resource_it->second->_uri;
+    toply_data.server.resource.BuildFromUrl(resource_it->second->_uri);
     toply_data.resource_id = resource_id;
     toply_data.weight = 0;
 
