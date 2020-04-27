@@ -18,8 +18,19 @@ namespace pplive {
 class LoadBalanceABC : boost::noncopyable {
    public:
     LoadBalanceABC(){};
+    /**
+     * @brief 根据自定义算法筛选合理的节点
+     * 
+     * @param nodes 符合条件的服务器节点
+     * @return std::vector<std::shared_ptr<PPResourceNode>> 
+     */
     virtual std::vector<std::shared_ptr<PPResourceNode>> FetchNodes(
         std::vector<std::shared_ptr<PPResourceNode>>& nodes) = 0;
+    /**
+     * @brief 拷贝自身
+     * 
+     * @return LoadBalanceABC* 在堆上新建的LoadBalanceABC的指针 
+     */
     virtual LoadBalanceABC* Clone() = 0;
 };
 
@@ -35,13 +46,19 @@ class DefaultLoadBalance : public LoadBalanceABC {
         return l->_weight < r->_weight;
     }
 
+    /**
+     * @brief 根据weight筛选_select_num个服务器
+     * 
+     * @param servers 符合条件的服务器
+     * @return std::vector<std::shared_ptr<PPResourceNode>> 
+     */
     virtual std::vector<std::shared_ptr<PPResourceNode>> FetchNodes(
         std::vector<std::shared_ptr<PPResourceNode>>& servers);
 
     virtual DefaultLoadBalance* Clone() { return new DefaultLoadBalance(); };
 
    private:
-    int _select_num;
+    int _select_num; //初筛选择的服务器数量
 };
 
 std::vector<std::shared_ptr<PPResourceNode>> DefaultLoadBalance::FetchNodes(

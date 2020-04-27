@@ -11,6 +11,7 @@ using boost::asio::steady_timer;
 using boost::asio::ip::icmp;
 namespace chrono = boost::asio::chrono;
 
+namespace pplive {
 class Pinger {
    public:
     Pinger(boost::asio::io_context& io_context, const char* destination)
@@ -29,6 +30,10 @@ class Pinger {
     long long spend_time() { return spend_time_; }
 
    private:
+    /**
+     * @brief 准备并发送数据 注册超时函数
+     * 
+     */
     void start_send() {
         std::string body("\"Hello!\" from Asio ping.");
 
@@ -62,6 +67,10 @@ class Pinger {
         }
         socket_.close();
     }
+    /**
+     * @brief 清理reply_buffer_ 注册数据到达时候的回调函数
+     * 
+     */
 
     void start_receive() {
         // Discard any data already in the buffer.
@@ -74,7 +83,11 @@ class Pinger {
                 handle_receive(length);
             });
     }
-
+    /**
+     * @brief 当收到数据时进行回调
+     * 
+     * @param length 收到的数据的长度
+     */
     void handle_receive(std::size_t length) {
         // The actual number of bytes received is committed to the buffer so
         // that we can extract it using a std::istream object.
@@ -114,13 +127,14 @@ class Pinger {
 #endif
     }
 
-    icmp::resolver resolver_;
-    icmp::endpoint destination_;
-    icmp::socket socket_;
-    steady_timer timer_;
-    unsigned short sequence_number_;
-    chrono::steady_clock::time_point time_sent_;
-    boost::asio::streambuf reply_buffer_;
-    std::size_t num_replies_;
-    long long spend_time_;
+    icmp::resolver resolver_; //处理器
+    icmp::endpoint destination_; //目标地址
+    icmp::socket socket_; //套接字
+    steady_timer timer_; //计时器
+    unsigned short sequence_number_; //序列号
+    chrono::steady_clock::time_point time_sent_; //发信时间
+    boost::asio::streambuf reply_buffer_; //回复buffer
+    std::size_t num_replies_; //重试次数
+    long long spend_time_; //花费时间
 };
+}

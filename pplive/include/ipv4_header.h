@@ -46,6 +46,7 @@
 // |                                                              |       v
 // +--------------------------------------------------------------+      ---
 
+namespace pplive {
 class ipv4_header {
    public:
     ipv4_header() { std::fill(rep_, rep_ + sizeof(rep_), 0); }
@@ -92,4 +93,5 @@ class ipv4_header {
     }
 
     unsigned char rep_[60];
+};
 };

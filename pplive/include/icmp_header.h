@@ -16,7 +16,7 @@
 // |          identifier           |       sequence number        |       |
 // |                               |                              |       v
 // +-------------------------------+------------------------------+      ---
-
+namespace pplive {
 class icmp_header {
    public:
     enum {
@@ -88,4 +88,5 @@ void compute_checksum(icmp_header& header,
     sum = (sum >> 16) + (sum & 0xFFFF);
     sum += (sum >> 16);
     header.checksum(static_cast<unsigned short>(~sum));
+}
 }
