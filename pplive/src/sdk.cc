@@ -102,6 +102,11 @@ namespace pplive {
       _node_id = node_id_info.node_id;
       _status = NodeControllStatus::CONNECTING;
       _conn_cb();
+      // ping 他
+      _ping_timer = _loop->runAfter(100, [&](){
+        auto req = BaseMsg(MsgType::PING);
+        con->sendMsg(req.ToString());
+      }, 500);
     }
 
     return PP_OK;

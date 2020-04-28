@@ -165,6 +165,15 @@ class PPToplyInfo : public boost::noncopyable {
              */
             int redirectNode(PPToplyInfo * toply, const PPResourceNode * node);
         private:
+
+            /**
+             * @brief 处理超时
+             * 
+             * @param conn 
+             * @return int 
+             */
+            int handleTimeout(const handy::TcpConnPtr& conn);
+            
             /**
              * @brief 处理 链接请求
              * 

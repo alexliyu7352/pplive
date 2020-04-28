@@ -69,6 +69,78 @@ namespace pplive {
         return child_it->second;
     }
 
+    PPControllServer::PPControllServer(const std::string& host,
+                                       unsigned short port,
+                                       LoadBalanceABC* load_balance)
+        : _load_balance(load_balance) {
+        _loop = std::make_unique<handy::EventBase>();
+
+        _server = handy::HSHA::startServer(_loop.get(), host, port, 10);
+
+        _server->server_->onConnState([&](const handy::TcpConnPtr conn){
+            conn->context<PPNodeSession>();
+            if (conn->getState() == handy::TcpConn::State::Connected){
+                // 设置消息处理
+                conn->addIdleCB(10, [](const handy::TcpConnPtr& con) {
+                    con->close();
+                });
+
+                conn->onMsg(new handy::LineCodec, [&](const handy::TcpConnPtr& con, handy::Slice msg){
+                    if (msg.empty()){
+                        return;
+                    }
+                    auto PP_msg = BaseMsg(msg.toString());
+                    std::cout<<"收到消息: " <<msg.toString()<<std::endl;
+                    int ret; //错误
+                    switch (PP_msg.GetMsgType())
+                    {
+                    case MsgType::CONNECT:
+                        // 建立连接
+                        std::cout<<"尝试连接"<<std::endl;
+                        ret = handleMsgConnect(con,PP_msg);
+                        break;
+                    case MsgType::Fetch:
+                        ret = handleMsgFetch(con, PP_msg);
+                        break;
+                    case MsgType::PING:
+                        ret = handleMsgPing(conn);
+                        break;
+                    case MsgType::TOPLY_SYNC:
+                        ret = handleMsgToplySync(con, PP_msg);
+                        break;
+                    case MsgType::DISCONNECT:
+                        ret = handleDisConn(con, PP_msg);
+                        break;
+                    default:
+                        break;
+                    }
+                });
+            } else if (conn->getState() == handy::TcpConn::State::Closed){
+                _conn_map.erase(conn->context<PPNodeSession>().node_id);
+            }
+
+        });
+    }
+
+
+        int PPControllServer::handleTimeout(const handy::TcpConnPtr& conn) {
+        auto node_id = conn->context<PPNodeSession>().node_id;
+        for (auto resource_id : conn->context<PPNodeSession>().resouce_ids){
+            auto toply_it = _toply_map.find(resource_id);
+            if (toply_it != _toply_map.end()){
+                // 清除
+                auto child_nodes = toply_it->second->FindChilds(node_id);
+                for (auto child : child_nodes) {
+                    redirectNode(toply_it->second.get(), child.get());
+                }
+                toply_it->second->RemoveToply(node_id);
+            }
+        }
+        conn->context<PPNodeSession>().conn_status = NodeControllStatus::CLOSING;
+        conn->close();
+        return PP_OK;
+    }
+
 
     void PPControllServer::Run(bool threading) {
         if (threading) {
@@ -101,53 +173,6 @@ namespace pplive {
         } 
         _toply_map.erase(it);
         return PP_OK;
-    }
-
-    PPControllServer::PPControllServer(const std::string& host,
-                                       unsigned short port,
-                                       LoadBalanceABC* load_balance)
-        : _load_balance(load_balance) {
-        _loop = std::make_unique<handy::EventBase>();
-
-        _server = handy::HSHA::startServer(_loop.get(), host, port, 10);
-
-        _server->server_->onConnState([&](const handy::TcpConnPtr conn){
-            conn->context<PPNodeSession>();
-            if (conn->getState() == handy::TcpConn::State::Connected){
-                // 设置消息处理
-                conn->onMsg(new handy::LineCodec, [&](const handy::TcpConnPtr& con, handy::Slice msg){
-                    if (msg.empty()){
-                        return;
-                    }
-                    auto PP_msg = BaseMsg(msg.toString());
-                    std::cout<<"收到消息: " <<msg.toString()<<std::endl;
-                    int ret; //错误
-                    switch (PP_msg.GetMsgType())
-                    {
-                    case MsgType::CONNECT:
-                        // 建立连接
-                        std::cout<<"尝试连接"<<std::endl;
-                        ret = handleMsgConnect(con,PP_msg);
-                        break;
-                    case MsgType::Fetch:
-                        ret = handleMsgFetch(con, PP_msg);
-                        break;
-                    case MsgType::PING:
-                        ret = handleMsgPing(conn);
-                        break;
-                    case MsgType::TOPLY_SYNC:
-                        ret = handleMsgToplySync(con, PP_msg);
-                        break;
-                    case MsgType::DISCONNECT:
-                        ret = handleDisConn(con, PP_msg);
-                        break;
-                    default:
-                        break;
-                    }
-                });
-            }
-
-        });
     }
 
     int PPControllServer::redirectNode(PPToplyInfo * toply,const PPResourceNode * node){

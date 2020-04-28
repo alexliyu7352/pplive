@@ -143,6 +143,7 @@ namespace pplive {
             NodeControllStatus _status;
 
             handy::TcpConnPtr _d2_conn;
+            handy::TimerId _ping_timer;
             std::unique_ptr<handy::EventBase> _loop;
             PPSDKConfig _config;
 
@@ -155,5 +156,6 @@ namespace pplive {
             std::map<std::string, std::shared_ptr<PPResourceNode>> _resource_map;
 
             std::unique_ptr<ServerSelectABC> _server_select;
+
     };
 }
