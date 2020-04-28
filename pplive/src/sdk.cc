@@ -24,9 +24,10 @@ namespace pplive {
              auto conn_req_msg = BaseMsg(MsgType::CONNECT);
              con->sendMsg(conn_req_msg.ToString());
              _status = NodeControllStatus::HANDSHAKING;
-          } else if (con->getState() == handy::TcpConn::State::Connected) {
+          } else if (con->getState() == handy::TcpConn::State::Closed) {
             // 关闭连接
               _status = NodeControllStatus::CLOSING;
+              _loop->cancel(this->_ping_timer);
           }
       });
 
